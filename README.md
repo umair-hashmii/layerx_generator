@@ -4,13 +4,16 @@
 
 ## Overview
 
-`layerx_generator` simplifies Flutter development by generating a clean, scalable directory structure following the MVVM pattern. It comes with essential service utilities, GetX state management, and pre-configured configurations to streamline project setup.
+`layerx_generator` simplifies Flutter development by generating a clean, scalable directory
+structure following the MVVM pattern. It comes with essential service utilities, GetX state
+management, and pre-configured configurations to streamline project setup.
 
 ## Features
 
 - **Automated MVVM Directory Structure:** Generates `lib/app/` with organized layers.
 - **GetX Integration:** Preconfigured navigation and state management.
-- **Built-in Service Utilities:** Includes `HttpsService`, `SharedPreferencesHelper`, and `JsonExtractor`.
+- **Built-in Service Utilities:** Includes `HttpsService`, `SharedPreferencesHelper`, and
+  `JsonExtractor`.
 - **Supports Responsive Design:** Integrates `flutter_screenutil` for adaptive UI scaling.
 - **Flexible Usage:** Run via CLI or invoke programmatically in your project.
 
@@ -20,7 +23,7 @@ Add the package to your project by updating `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  layerx_generator: ^2.0.0
+  layerx_generator: ^2.0.1
 ```
 
 Run:
@@ -182,24 +185,61 @@ dev_dependencies:
 
 ## Changelog
 
+### [2.0.1] - 2025-08-20
+
+- Connection pooling with HTTP/2 multiplexing, TLS resumption, and gzip/deflate for faster
+  handshakes and reduced CPU/RAM usage.
+- Concurrency limiter using token-bucket and isolates for JSON parsing, with adaptive concurrency to
+  device cores to prevent socket exhaustion and maintain UI at 60FPS.
+- Multi-thread offloading for heavy JSON/XML parsing, compression, and encryption in isolates for
+  smoother main thread and no frame drops.
+- Smarter retries with exponential backoff and jitter, tuned for flaky networks to improve recovery
+  and user experience.
+- CancelToken for each request, enabling socket abort to save sockets, avoid leaks, and support
+  instant cancellation.
+- Timeout control with per-call and global deadlines, auto-closing sockets to prevent hangs and
+  ensure the app never freezes.
+- Request deduplication with in-flight cache keyed by URL and params to remove duplicate API hits
+  and save bandwidth.
+- Multipart uploads using streams with chunked encoding in background isolate for faster uploads and
+  lower memory usage.
+- Centralized headers to auto-attach JWT, device info, and tracing headers for consistent
+  authentication across endpoints.
+- Categorized error domains (Timeout, Network, Server, Cancel) with structured logging for improved
+  error handling.
+- TLS optimization enforcing modern ciphers and enabling HTTP/2 by default for stronger security and
+  faster requests.
+- Adaptive caching supporting ETag, Last-Modified, conditional requests, and in-memory/disk cache
+  for bandwidth savings and instant reloads.
+- Monitoring hooks with built-in interceptors for latency, retries, payload size, and socket reuse
+  for easy profiling and SLA tracking.
 
 ### v2.0.0
+
 - Removed automatic pubspec.yaml modification to prevent overwriting project configurations.
 - Users must now manually add required dependencies to pubspec.yaml.
+
 ### v0.0.2
+
 - Added CLI and programmatic support.
 - Improved MVVM structure.
 - Included service utilities for HTTP calls, shared preferences, and JSON extraction.
 
 ### v0.0.1
+
 - Initial release with basic directory generation.
 
 ## Contributing
 
-Contributions are welcome! If you encounter issues or have feature requests, please open an issue or submit a pull request on GitHub.
+Contributions are welcome! If you encounter issues or have feature requests, please open an issue or
+submit a pull request on GitHub.
 
-**GitHub Repository:** [https://github.com/Umaiir11/layerx_generator](https://github.com/Umaiir11/layerx_generator)
-**Medium Blog:** [https://medium.com/@iam.umairimran/layerx-architecture-8e9415d9d624](https://medium.com/@iam.umairimran/layerx-architecture-8e9415d9d624)
+**LayerX:** [https://layer-x.netlify.app/](https://layer-x.netlify.app/)
+
+**GitHub Repository:
+** [https://github.com/Umaiir11/layerx_generator](https://github.com/Umaiir11/layerx_generator)
+**Medium Blog:
+** [https://medium.com/@iam.umairimran/layerx-architecture-8e9415d9d624](https://medium.com/@iam.umairimran/layerx-architecture-8e9415d9d624)
 
 ## License
 

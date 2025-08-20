@@ -397,8 +397,7 @@ abstract class AppUrls {
 }
 ''');
 
-    await File(path.join(configDir.path, 'app_text_style.dart'))
-        .writeAsString('''
+    await File(path.join(configDir.path, 'app_text_style.dart')).writeAsString('''
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -654,8 +653,7 @@ abstract class AppTextStyles {
 }
 ''');
 
-    await File(path.join(configDir.path, 'padding_extensions.dart'))
-        .writeAsString('''
+    await File(path.join(configDir.path, 'padding_extensions.dart')).writeAsString('''
 import 'package:flutter/material.dart';
 
 /// Adds padding extensions for widgets in the LayerX app.
@@ -870,13 +868,10 @@ class AppConfig {
   }
 
   Future<void> _createModelFiles(String appDirPath) async {
-    final bodyModelDir =
-        Directory(path.join(appDirPath, 'mvvm', 'model', 'body_model'));
-    final apiResponseModelDir =
-        Directory(path.join(appDirPath, 'mvvm', 'model', 'api_response_model'));
+    final bodyModelDir = Directory(path.join(appDirPath, 'mvvm', 'model', 'body_model'));
+    final apiResponseModelDir = Directory(path.join(appDirPath, 'mvvm', 'model', 'api_response_model'));
 
-    await File(path.join(bodyModelDir.path, 'driver_signup_body_model.dart'))
-        .writeAsString('''
+    await File(path.join(bodyModelDir.path, 'driver_signup_body_model.dart')).writeAsString('''
 /// Model for driver signup data with multipart support.
 class DriverSignupBodyModel {
   String? name;
@@ -894,8 +889,7 @@ class DriverSignupBodyModel {
 }
 ''');
 
-    await File(path.join(bodyModelDir.path, 'garage_signup_body_model.dart'))
-        .writeAsString('''
+    await File(path.join(bodyModelDir.path, 'garage_signup_body_model.dart')).writeAsString('''
 /// Model for garage signup data with multipart support.
 class GarageSignupBodyModel {
   String? name;
@@ -909,8 +903,7 @@ class GarageSignupBodyModel {
 }
 ''');
 
-    await File(path.join(bodyModelDir.path, 'buyCar_request_model.dart'))
-        .writeAsString('''
+    await File(path.join(bodyModelDir.path, 'buyCar_request_model.dart')).writeAsString('''
 /// Model for garage signup data with multipart support.
 class BuyCarRequestModel {
   String? name;
@@ -924,8 +917,7 @@ class BuyCarRequestModel {
 }
 ''');
 
-    await File(path.join(bodyModelDir.path, 'add_car_body_model.dart'))
-        .writeAsString('''
+    await File(path.join(bodyModelDir.path, 'add_car_body_model.dart')).writeAsString('''
 /// Model for adding car data with multipart support.
 class AddCarBodyModel {
   String? model;
@@ -950,8 +942,7 @@ class AddCarBodyModel {
 }
 ''');
 
-    await File(path.join(apiResponseModelDir.path, 'api_response.dart'))
-        .writeAsString('''
+    await File(path.join(apiResponseModelDir.path, 'api_response.dart')).writeAsString('''
 /// Generic API response model for flexible data parsing.
 class ApiResponse<T> {
   final bool? success;
@@ -1020,65 +1011,164 @@ class ApiResponse<T> {
   Future<void> _createServiceFiles(String appDirPath) async {
     final servicesDir = Directory(path.join(appDirPath, 'services'));
 
-    await File(path.join(servicesDir.path, 'https_calls.dart'))
-        .writeAsString('''
-import 'dart:async';
+    await File(path.join(servicesDir.path, 'https_calls.dart')).writeAsString('''
+      import 'dart:async';
+import 'dart:collection';
 import 'dart:io';
+import 'dart:math';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import '../config/app_urls.dart';
-import '../mvvm/model/body_model/driver_signup_body_model.dart';
-import '../mvvm/model/body_model/garage_signup_body_model.dart';
-import '../mvvm/model/body_model/add_car_body_model.dart';
-import '../mvvm/model/body_model/buy_car_request.dart';
+import '../config/global_variables.dart';
+import 'internet_service.dart';
 import 'logger_service.dart';
 import 'shared_preferences_service.dart';
 
-/// Enum for HTTP methods supported by HttpsCalls.
 enum HttpMethod { GET, POST, PUT, PATCH, DELETE }
+class CancelToken {
+  bool _canceled = false;
+  String? reason;
+  final Completer<void> _notifier = Completer<void>();
+  bool get isCanceled => _canceled;
+  Future<void> get whenCanceled => _notifier.future;
 
-/// Service for making HTTP requests with retry and multipart support.
+  void cancel([String? reason]) {
+    if (_canceled) return;
+    _canceled = true;
+    this.reason = reason;
+    if (!_notifier.isCompleted) _notifier.complete();
+  }
+}
+
 class HttpsCalls {
+// lower CPU per call.
+  late final IOClient _pooledClient = () {
+    final h = HttpClient()
+      ..idleTimeout = const Duration(seconds: 15)
+      ..connectionTimeout = const Duration(seconds: 15)
+      ..maxConnectionsPerHost = 8
+      ..autoUncompress = true;
+    return IOClient(h);
+  }();
+
+  final int _maxConcurrency = 8;
+  int _active = 0;
+  final Queue<Completer<void>> _waiters = Queue<Completer<void>>();
+
+  Future<void> _acquireSlot() async {
+    if (_active < _maxConcurrency) {
+      _active++;
+      return;
+    }
+    final c = Completer<void>();
+    _waiters.addLast(c);
+    await c.future;
+  }
+
+  void _releaseSlot() {
+    if (_waiters.isNotEmpty) {
+      _waiters.removeFirst().complete();
+    } else {
+      _active = (_active > 0) ? _active - 1 : 0;
+    }
+  }
+
   final _ongoingRequests = <String, Future<http.Response>>{};
   final Duration _timeoutDuration = const Duration(seconds: 20);
   final int _maxRetries = 2;
+  final _random = Random();
 
   Future<http.Response> _performRequest(
-    String key,
-    Future<http.Response> Function() request,
-  ) async {
+      String key,
+      Future<http.Response> Function(http.Client client) request, {
+        CancelToken? cancelToken,
+      }) async {
+    final hasInternet = await InternetService.hasWorkingInternet();
+    LoggerService.d('Internet status: \$hasInternet');
+
+    if (!hasInternet) {
+      GlobalVariables.errorMessages = ["No internet connection"];
+      return http.Response('No internet connection', 503);
+    }
+
     if (_ongoingRequests.containsKey(key)) {
       return _ongoingRequests[key]!;
     }
-    for (int retryCount = 0; retryCount <= _maxRetries; retryCount++) {
-      try {
-        final responseFuture = request().timeout(_timeoutDuration);
-        _ongoingRequests[key] = responseFuture;
-        final response = await responseFuture;
-        _ongoingRequests.remove(key);
-        LoggerService.i('Request succeeded for \$key');
-        return response;
-      } on TimeoutException catch (e) {
-        if (retryCount == _maxRetries) {
-          _ongoingRequests.remove(key);
-          LoggerService.e('Request timed out after \$_maxRetries retries: \$e');
-          throw Exception('Request timed out after \$_maxRetries retries: \$e');
-        }
-        await Future.delayed(Duration(seconds: 2 * retryCount));
-      } catch (e, stackTrace) {
-        if (retryCount == _maxRetries) {
-          _ongoingRequests.remove(key);
-          LoggerService.e(
-              'Request failed after \$_maxRetries retries: \$e',
-              error: e,
-              stackTrace: stackTrace);
-          throw Exception(
-              'Request failed after \$_maxRetries retries: \$e\\n\$stackTrace');
-        }
-        await Future.delayed(Duration(seconds: 2 * retryCount));
+
+    await _acquireSlot();
+    try {
+      IOClient? perRequestClient;
+      http.Client client;
+      if (cancelToken != null) {
+        final h = HttpClient()
+          ..idleTimeout = const Duration(seconds: 15)
+          ..connectionTimeout = const Duration(seconds: 15)
+          ..maxConnectionsPerHost = 8
+          ..autoUncompress = true;
+        perRequestClient = IOClient(h);
+        client = perRequestClient;
+      } else {
+        client = _pooledClient;
       }
+      for (int attempt = 0; attempt <= _maxRetries; attempt++) {
+        if (cancelToken?.isCanceled == true) {
+          LoggerService.w('Request cancelled for \$key: \${cancelToken?.reason}');
+          perRequestClient?.close();
+          throw Exception('Request cancelled: \${cancelToken?.reason ?? ""}');
+        }
+
+        try {
+          final future = request(client).timeout(_timeoutDuration);
+          final response = (cancelToken == null)
+              ? await (_ongoingRequests[key] = future)
+              : await (_ongoingRequests[key] = Future.any([
+            future,
+            cancelToken.whenCanceled.then((_) => throw Exception('Request cancelled: \${cancelToken.reason ?? ""}')),
+          ]));
+
+          _ongoingRequests.remove(key);
+          LoggerService.i('Request succeeded for \$key');
+          perRequestClient?.close();
+          return response;
+        } on TimeoutException catch (e) {
+          if (attempt == _maxRetries) {
+            _ongoingRequests.remove(key);
+            perRequestClient?.close();
+            LoggerService.e('Request timed out after \$_maxRetries retries: \$e');
+            throw Exception('Timeout after \$_maxRetries retries');
+          }
+          await _retryDelay(attempt);
+        } on Exception catch (e, st) {
+          if (cancelToken?.isCanceled == true ||
+              e.toString().contains('Request cancelled')) {
+            _ongoingRequests.remove(key);
+            perRequestClient?.close();
+            LoggerService.w('Canceled \$key: \$e');
+            rethrow;
+          }
+
+          if (attempt == _maxRetries) {
+            _ongoingRequests.remove(key);
+            perRequestClient?.close();
+            LoggerService.e('Request failed after \$_maxRetries retries: \$e', error: e, stackTrace: st);
+            throw Exception('Failed after retries: \$e');
+          }
+          await _retryDelay(attempt);
+        }
+      }
+
+      _ongoingRequests.remove(key);
+      perRequestClient?.close();
+      throw Exception('Failed to perform request');
+    } finally {
+      _releaseSlot();
     }
-    _ongoingRequests.remove(key);
-    throw Exception('Failed to perform request');
+  }
+
+  Future<void> _retryDelay(int attempt) async {
+    final base = pow(2, attempt).toInt();
+    final jitter = _random.nextInt(400);
+    await Future.delayed(Duration(milliseconds: base * 500 + jitter));
   }
 
   Future<Map<String, String>> _getDefaultHeaders() async {
@@ -1090,169 +1180,124 @@ class HttpsCalls {
     };
   }
 
+
   Future<http.Response> _sendRequest(
-    HttpMethod method,
-    String lControllerUrl, {
-    List<int>? body,
-  }) async {
+      http.Client client,
+      HttpMethod method,
+      String lControllerUrl, {
+        List<int>? body,
+      }) async {
     final headers = await _getDefaultHeaders();
     final url = Uri.parse(AppUrls.baseAPIURL + lControllerUrl);
     LoggerService.d('Sending \$method request to \$url');
+
     switch (method) {
       case HttpMethod.GET:
-        return await http.get(url, headers: headers);
+        return await client.get(url, headers: headers);
       case HttpMethod.POST:
-        return await http.post(url, headers: headers, body: body);
+        return await client.post(url, headers: headers, body: body);
       case HttpMethod.PUT:
-        return await http.put(url, headers: headers, body: body);
+        return await client.put(url, headers: headers, body: body);
       case HttpMethod.PATCH:
-        return await http.patch(url, headers: headers, body: body);
+        return await client.patch(url, headers: headers, body: body);
       case HttpMethod.DELETE:
-        return await http.delete(url, headers: headers, body: body);
+        return await client.delete(url, headers: headers, body: body);
     }
   }
 
-  Future<http.Response> getApiHits(String lControllerUrl) {
+  Future<http.Response> getApiHits(String lControllerUrl, {CancelToken? cancelToken}) {
     return _performRequest(
-        lControllerUrl, () => _sendRequest(HttpMethod.GET, lControllerUrl));
+      lControllerUrl,
+          (client) => _sendRequest(client, HttpMethod.GET, lControllerUrl),
+      cancelToken: cancelToken,
+    );
   }
 
-  Future<http.Response> postApiHits(
-      String lControllerUrl, List<int>? lUtfContent) {
-    return _performRequest(lControllerUrl,
-        () => _sendRequest(HttpMethod.POST, lControllerUrl, body: lUtfContent));
+  Future<http.Response> postApiHits(String lControllerUrl, List<int>? lUtfContent, {CancelToken? cancelToken}) {
+    return _performRequest(
+      lControllerUrl,
+          (client) => _sendRequest(client, HttpMethod.POST, lControllerUrl, body: lUtfContent),
+      cancelToken: cancelToken,
+    );
   }
 
-  Future<http.Response> putApiHits(
-      String lControllerUrl, List<int> lUtfContent) {
-    return _performRequest(lControllerUrl,
-        () => _sendRequest(HttpMethod.PUT, lControllerUrl, body: lUtfContent));
+  Future<http.Response> putApiHits(String lControllerUrl, List<int> lUtfContent, {CancelToken? cancelToken}) {
+    return _performRequest(
+      lControllerUrl,
+          (client) => _sendRequest(client, HttpMethod.PUT, lControllerUrl, body: lUtfContent),
+      cancelToken: cancelToken,
+    );
   }
 
-  Future<http.Response> patchApiHits(
-      String lControllerUrl, List<int> lUtfContent) {
-    return _performRequest(lControllerUrl,
-        () => _sendRequest(HttpMethod.PATCH, lControllerUrl, body: lUtfContent));
+  Future<http.Response> patchApiHits(String lControllerUrl, List<int> lUtfContent, {CancelToken? cancelToken}) {
+    return _performRequest(
+      lControllerUrl,
+          (client) => _sendRequest(client, HttpMethod.PATCH, lControllerUrl, body: lUtfContent),
+      cancelToken: cancelToken,
+    );
   }
 
-  Future<http.Response> deleteApiHits(
-      String lControllerUrl, List<int>? lUtfContent) {
-    return _performRequest(lControllerUrl,
-        () => _sendRequest(HttpMethod.DELETE, lControllerUrl, body: lUtfContent));
+  Future<http.Response> deleteApiHits(String lControllerUrl, {List<int>? lUtfContent, CancelToken? cancelToken}) {
+    return _performRequest(
+      lControllerUrl,
+          (client) => _sendRequest(client, HttpMethod.DELETE, lControllerUrl, body: lUtfContent),
+      cancelToken: cancelToken,
+    );
   }
 
   Future<http.Response> _genericMultipartRequest(
-    String endpointUrl,
-    dynamic model, {
-    Map<String, dynamic Function()>? fileExtractors,
-  }) async {
+      http.Client client,
+      String endpointUrl,
+      dynamic model, {
+        Map<String, dynamic Function()>? fileExtractors,
+        String? type,
+      }) async {
     final token = await SharedPreferencesService().readToken();
     final url = Uri.parse(AppUrls.baseAPIURL + endpointUrl);
-    final request = http.MultipartRequest('POST', url);
+    final request = http.MultipartRequest(type ?? 'POST', url);
     request.headers.addAll({
-      HttpHeaders.contentTypeHeader: 'multipart/form-data',
       HttpHeaders.acceptHeader: 'application/json',
       if (token != null) HttpHeaders.authorizationHeader: 'Bearer \$token',
     });
+
     final json = model.toJson();
     json.forEach((key, value) {
-      if (value != null && (value is String || value is num || value is bool)) {
+      if (value == null) return;
+      if (value is List) {
+        for (int i = 0; i < value.length; i++) {
+          request.fields['\$key[\$i]'] = value[i].toString();
+        }
+      } else if (value is String || value is num || value is bool) {
         request.fields[key] = value.toString();
       }
     });
+
     if (fileExtractors != null) {
       for (var entry in fileExtractors.entries) {
-        final key = entry.key;
-        final value = entry.value();
-        if (value is File) {
-          request.files.add(await http.MultipartFile.fromPath(key, value.path));
-        } else if (value is List<File>) {
-          for (int i = 0; i < value.length; i++) {
-            request.files
-                .add(await http.MultipartFile.fromPath('\$key[\$i]', value[i].path));
+        final fKey = entry.key;
+        final v = entry.value();
+        if (v is File) {
+          request.files.add(await http.MultipartFile.fromPath(fKey, v.path));
+        } else if (v is List<File>) {
+          for (final f in v) {
+            request.files.add(await http.MultipartFile.fromPath(fKey, f.path));
           }
         }
       }
     }
+
     LoggerService.d('Sending multipart request to \$endpointUrl');
-    final streamedResponse = await request.send();
+    final streamedResponse = await client.send(request);
     return await http.Response.fromStream(streamedResponse);
   }
 
-  Future<http.Response> multipartDriverProfileApiHits(
-    String lControllerUrl,
-    DriverSignupBodyModel profileMultipart,
-  ) {
-    return _performRequest(
-      lControllerUrl,
-      () => _genericMultipartRequest(
-        lControllerUrl,
-        profileMultipart,
-        fileExtractors: {
-          'image': () => profileMultipart.image,
-          'documents': () => profileMultipart.documents,
-          'details': () => profileMultipart.details,
-        },
-      ),
-    );
-  }
 
-  Future<http.Response> multipartGarageProfileApiHits(
-    String lControllerUrl,
-    GarageSignupBodyModel profileMultipart,
-  ) {
-    return _performRequest(
-      lControllerUrl,
-      () => _genericMultipartRequest(
-        lControllerUrl,
-        profileMultipart,
-        fileExtractors: {
-          'image': () => profileMultipart.image,
-        },
-      ),
-    );
-  }
-
-  Future<http.Response> multipartBuyCarRequestApi(
-    String lControllerUrl,
-    BuyCarRequestModel buyRequestMultipart,
-  ) {
-    return _performRequest(
-      lControllerUrl,
-      () => _genericMultipartRequest(
-        lControllerUrl,
-        buyRequestMultipart,
-        fileExtractors: {
-          'image': () => buyRequestMultipart.image,
-        },
-      ),
-    );
-  }
-
-  Future<http.Response> crudCarMultipartApi(
-    String lControllerUrl,
-    AddCarBodyModel carDataModel,
-  ) {
-    return _performRequest(
-      lControllerUrl,
-      () => _genericMultipartRequest(
-        lControllerUrl,
-        carDataModel,
-        fileExtractors: {
-          'image': () => carDataModel.image,
-          'insuranceDocument': () => carDataModel.insuranceDocument,
-          'inspectionDocument': () => carDataModel.inspectionDocument,
-          'registrationDocument': () => carDataModel.registrationDocument,
-          'additionalDocuments': () => carDataModel.additionalDocuments,
-        },
-      ),
-    );
-  }
 }
-''');
 
-    await File(path.join(servicesDir.path, 'shared_preferences_service.dart'))
-        .writeAsString('''
+      
+      ''');
+
+    await File(path.join(servicesDir.path, 'shared_preferences_service.dart')).writeAsString('''
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'logger_service.dart';
@@ -1321,8 +1366,7 @@ class SharedPreferencesService {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'json_extractor.dart'))
-        .writeAsString('''
+    await File(path.join(servicesDir.path, 'json_extractor.dart')).writeAsString('''
 import 'dart:convert';
 import '../config/global_variables.dart';
 import 'logger_service.dart';
@@ -1350,8 +1394,7 @@ class MessageExtractor {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'global_variables.dart'))
-        .writeAsString('''
+    await File(path.join(servicesDir.path, 'global_variables.dart')).writeAsString('''
 import 'app_enums.dart';
 
 /// Global variables for the LayerX app.
@@ -1362,8 +1405,7 @@ class GlobalVariables {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'location_service.dart'))
-        .writeAsString('''
+    await File(path.join(servicesDir.path, 'location_service.dart')).writeAsString('''
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'logger_service.dart';
@@ -1415,8 +1457,7 @@ class LocationService {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'api_response_handler.dart'))
-        .writeAsString('''
+    await File(path.join(servicesDir.path, 'api_response_handler.dart')).writeAsString('''
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -1494,8 +1535,7 @@ class ApiResponseHandler {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'logger_service.dart'))
-        .writeAsString('''
+    await File(path.join(servicesDir.path, 'logger_service.dart')).writeAsString('''
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
@@ -1593,12 +1633,10 @@ class LoggerService {
   }
 
   Future<void> _createRepositoryFiles(String appDirPath) async {
-    final authRepoDir =
-        Directory(path.join(appDirPath, 'repository', 'auth_repo'));
+    final authRepoDir = Directory(path.join(appDirPath, 'repository', 'auth_repo'));
     final apiRepoDir = Directory(path.join(appDirPath, 'repository', 'apis'));
 
-    await File(path.join(authRepoDir.path, 'auth_repository.dart'))
-        .writeAsString('''
+    await File(path.join(authRepoDir.path, 'auth_repository.dart')).writeAsString('''
 import 'package:http/http.dart' as http;
 import '../../config/app_urls.dart';
 import '../../mvvm/model/api_response_model/api_response.dart';
@@ -1656,8 +1694,7 @@ class AuthRepository {
 }
 ''');
 
-    await File(path.join(apiRepoDir.path, 'data_repository.dart'))
-        .writeAsString('''
+    await File(path.join(apiRepoDir.path, 'data_repository.dart')).writeAsString('''
 import 'package:http/http.dart' as http;
 import '../../config/app_urls.dart';
 import '../../mvvm/model/api_response_model/api_response.dart';

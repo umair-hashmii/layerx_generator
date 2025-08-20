@@ -5,6 +5,26 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+
+## [2.0.1] - 2025-06-03
+### Added
+
+- Connection pooling with HTTP/2 multiplexing, TLS resumption, and gzip/deflate for faster handshakes and reduced CPU/RAM usage.
+- Concurrency limiter using token-bucket and isolates for JSON parsing, with adaptive concurrency to device cores to prevent socket exhaustion and maintain UI at 60FPS.
+- Multi-thread offloading for heavy JSON/XML parsing, compression, and encryption in isolates for smoother main thread and no frame drops.
+- Smarter retries with exponential backoff and jitter, tuned for flaky networks to improve recovery and user experience.
+- CancelToken for each request, enabling socket abort to save sockets, avoid leaks, and support instant cancellation.
+- Timeout control with per-call and global deadlines, auto-closing sockets to prevent hangs and ensure the app never freezes.
+- Request deduplication with in-flight cache keyed by URL and params to remove duplicate API hits and save bandwidth.
+- Multipart uploads using streams with chunked encoding in background isolate for faster uploads and lower memory usage.
+- Centralized headers to auto-attach JWT, device info, and tracing headers for consistent authentication across endpoints.
+- Categorized error domains (Timeout, Network, Server, Cancel) with structured logging for improved error handling.
+- TLS optimization enforcing modern ciphers and enabling HTTP/2 by default for stronger security and faster requests.
+- Adaptive caching supporting ETag, Last-Modified, conditional requests, and in-memory/disk cache for bandwidth savings and instant reloads.
+- Monitoring hooks with built-in interceptors for latency, retries, payload size, and socket reuse for easy profiling and SLA tracking.
+
+
+
 ## [2.0.0] - 2025-05-27
 
 ### Added
