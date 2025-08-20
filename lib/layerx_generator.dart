@@ -397,7 +397,8 @@ abstract class AppUrls {
 }
 ''');
 
-    await File(path.join(configDir.path, 'app_text_style.dart')).writeAsString('''
+    await File(path.join(configDir.path, 'app_text_style.dart'))
+        .writeAsString('''
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -653,7 +654,8 @@ abstract class AppTextStyles {
 }
 ''');
 
-    await File(path.join(configDir.path, 'padding_extensions.dart')).writeAsString('''
+    await File(path.join(configDir.path, 'padding_extensions.dart'))
+        .writeAsString('''
 import 'package:flutter/material.dart';
 
 /// Adds padding extensions for widgets in the LayerX app.
@@ -868,10 +870,13 @@ class AppConfig {
   }
 
   Future<void> _createModelFiles(String appDirPath) async {
-    final bodyModelDir = Directory(path.join(appDirPath, 'mvvm', 'model', 'body_model'));
-    final apiResponseModelDir = Directory(path.join(appDirPath, 'mvvm', 'model', 'api_response_model'));
+    final bodyModelDir =
+        Directory(path.join(appDirPath, 'mvvm', 'model', 'body_model'));
+    final apiResponseModelDir =
+        Directory(path.join(appDirPath, 'mvvm', 'model', 'api_response_model'));
 
-    await File(path.join(bodyModelDir.path, 'driver_signup_body_model.dart')).writeAsString('''
+    await File(path.join(bodyModelDir.path, 'driver_signup_body_model.dart'))
+        .writeAsString('''
 /// Model for driver signup data with multipart support.
 class DriverSignupBodyModel {
   String? name;
@@ -889,7 +894,8 @@ class DriverSignupBodyModel {
 }
 ''');
 
-    await File(path.join(bodyModelDir.path, 'garage_signup_body_model.dart')).writeAsString('''
+    await File(path.join(bodyModelDir.path, 'garage_signup_body_model.dart'))
+        .writeAsString('''
 /// Model for garage signup data with multipart support.
 class GarageSignupBodyModel {
   String? name;
@@ -903,7 +909,8 @@ class GarageSignupBodyModel {
 }
 ''');
 
-    await File(path.join(bodyModelDir.path, 'buyCar_request_model.dart')).writeAsString('''
+    await File(path.join(bodyModelDir.path, 'buyCar_request_model.dart'))
+        .writeAsString('''
 /// Model for garage signup data with multipart support.
 class BuyCarRequestModel {
   String? name;
@@ -917,7 +924,8 @@ class BuyCarRequestModel {
 }
 ''');
 
-    await File(path.join(bodyModelDir.path, 'add_car_body_model.dart')).writeAsString('''
+    await File(path.join(bodyModelDir.path, 'add_car_body_model.dart'))
+        .writeAsString('''
 /// Model for adding car data with multipart support.
 class AddCarBodyModel {
   String? model;
@@ -942,7 +950,8 @@ class AddCarBodyModel {
 }
 ''');
 
-    await File(path.join(apiResponseModelDir.path, 'api_response.dart')).writeAsString('''
+    await File(path.join(apiResponseModelDir.path, 'api_response.dart'))
+        .writeAsString('''
 /// Generic API response model for flexible data parsing.
 class ApiResponse<T> {
   final bool? success;
@@ -1011,7 +1020,8 @@ class ApiResponse<T> {
   Future<void> _createServiceFiles(String appDirPath) async {
     final servicesDir = Directory(path.join(appDirPath, 'services'));
 
-    await File(path.join(servicesDir.path, 'https_calls.dart')).writeAsString('''
+    await File(path.join(servicesDir.path, 'https_calls.dart'))
+        .writeAsString('''
       import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
@@ -1297,7 +1307,8 @@ class HttpsCalls {
       
       ''');
 
-    await File(path.join(servicesDir.path, 'shared_preferences_service.dart')).writeAsString('''
+    await File(path.join(servicesDir.path, 'shared_preferences_service.dart'))
+        .writeAsString('''
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'logger_service.dart';
@@ -1366,7 +1377,8 @@ class SharedPreferencesService {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'json_extractor.dart')).writeAsString('''
+    await File(path.join(servicesDir.path, 'json_extractor.dart'))
+        .writeAsString('''
 import 'dart:convert';
 import '../config/global_variables.dart';
 import 'logger_service.dart';
@@ -1394,7 +1406,8 @@ class MessageExtractor {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'global_variables.dart')).writeAsString('''
+    await File(path.join(servicesDir.path, 'global_variables.dart'))
+        .writeAsString('''
 import 'app_enums.dart';
 
 /// Global variables for the LayerX app.
@@ -1405,7 +1418,8 @@ class GlobalVariables {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'location_service.dart')).writeAsString('''
+    await File(path.join(servicesDir.path, 'location_service.dart'))
+        .writeAsString('''
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'logger_service.dart';
@@ -1457,7 +1471,8 @@ class LocationService {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'api_response_handler.dart')).writeAsString('''
+    await File(path.join(servicesDir.path, 'api_response_handler.dart'))
+        .writeAsString('''
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -1535,7 +1550,8 @@ class ApiResponseHandler {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'logger_service.dart')).writeAsString('''
+    await File(path.join(servicesDir.path, 'logger_service.dart'))
+        .writeAsString('''
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
@@ -1633,10 +1649,12 @@ class LoggerService {
   }
 
   Future<void> _createRepositoryFiles(String appDirPath) async {
-    final authRepoDir = Directory(path.join(appDirPath, 'repository', 'auth_repo'));
+    final authRepoDir =
+        Directory(path.join(appDirPath, 'repository', 'auth_repo'));
     final apiRepoDir = Directory(path.join(appDirPath, 'repository', 'apis'));
 
-    await File(path.join(authRepoDir.path, 'auth_repository.dart')).writeAsString('''
+    await File(path.join(authRepoDir.path, 'auth_repository.dart'))
+        .writeAsString('''
 import 'package:http/http.dart' as http;
 import '../../config/app_urls.dart';
 import '../../mvvm/model/api_response_model/api_response.dart';
@@ -1694,7 +1712,8 @@ class AuthRepository {
 }
 ''');
 
-    await File(path.join(apiRepoDir.path, 'data_repository.dart')).writeAsString('''
+    await File(path.join(apiRepoDir.path, 'data_repository.dart'))
+        .writeAsString('''
 import 'package:http/http.dart' as http;
 import '../../config/app_urls.dart';
 import '../../mvvm/model/api_response_model/api_response.dart';
