@@ -1,6 +1,5 @@
 part of 'package:layerx_generator/src/layerx_generator.dart';
 
-// ========================= CONFIG =========================
 
 extension _ConfigPart on LayerXGenerator {
   Future<void> _createConfigFiles(String appDirPath) async {

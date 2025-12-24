@@ -3,7 +3,6 @@ import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
 class DependencyInstaller {
-  /// Predefined dependencies for LayerX projects
   static const Map<String, String> layerXDeps = {
     'get': '^4.7.3',
     'flutter_screenutil': '^5.9.3',
@@ -18,9 +17,7 @@ class DependencyInstaller {
     'flutter_timezone': '^5.0.1',
   };
 
-  /// ✅ Adds ONLY missing dependencies
-  /// ❌ Does NOT override existing ones
-  /// ❌ Does NOT format or reorder pubspec.yaml
+
   static Future<void> install(String projectPath) async {
     final pubspec = File(p.join(projectPath, 'pubspec.yaml'));
     if (!pubspec.existsSync()) {

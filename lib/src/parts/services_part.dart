@@ -1,6 +1,5 @@
 part of 'package:layerx_generator/src/layerx_generator.dart';
 
-// ========================= SERVICES =========================
 
 extension _ServicesPart on LayerXGenerator {
   Future<void> _createServiceFiles(String appDirPath) async {

@@ -1,10 +1,8 @@
 part of 'package:layerx_generator/src/layerx_generator.dart';
 
-// ========================= MVVM SKELETON =========================
 
 extension _MvvmPart on LayerXGenerator {
   Future<void> _createMVVMSkeleton(String appDirPath) async {
-    // ================= SPLASH =================
 
     await File(
       path.join(appDirPath, 'mvvm', 'view', 'splash', 'splash_view.dart'),

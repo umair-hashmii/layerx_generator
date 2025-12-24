@@ -1,6 +1,5 @@
 part of 'package:layerx_generator/src/layerx_generator.dart';
 
-// ========================= NOTIFICATIONS =========================
 
 extension _NotificationsPart on LayerXGenerator {
   Future<void> _createNotificationFiles(String appDirPath) async {
@@ -24,7 +23,6 @@ extension _NotificationsPart on LayerXGenerator {
     stdout.writeln('✅ Created notification files in services/notifications/');
   }
 
-  // ========================= FILE CONTENTS =========================
 
   String _notificationPermissionsContent() => r'''
 import 'dart:developer';

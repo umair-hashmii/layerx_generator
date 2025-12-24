@@ -1,6 +1,5 @@
 part of 'package:layerx_generator/src/layerx_generator.dart';
 
-// ========================= REPOSITORIES =========================
 
 extension _RepositoriesPart on LayerXGenerator {
   Future<void> _createRepositoryFiles(String appDirPath) async {
@@ -12,7 +11,6 @@ extension _RepositoriesPart on LayerXGenerator {
     await authRepoDir.create(recursive: true);
     await apiRepoDir.create(recursive: true);
 
-    // ================= AUTH REPOSITORY =================
 
     await File(
       path.join(authRepoDir.path, 'auth_repository.dart'),

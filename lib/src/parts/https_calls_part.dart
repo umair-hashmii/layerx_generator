@@ -1,6 +1,5 @@
 part of 'package:layerx_generator/src/layerx_generator.dart';
 
-// ========================= HTTPS CALLS CONTENT =========================
 
 extension _HttpsCallsPart on LayerXGenerator {
   String _httpsCallsContent() => r'''

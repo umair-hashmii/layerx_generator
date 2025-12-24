@@ -1,6 +1,5 @@
 part of 'package:layerx_generator/src/layerx_generator.dart';
 
-// ========================= MODELS =========================
 
 extension _ModelsPart on LayerXGenerator {
   Future<void> _createModelFiles(String appDirPath) async {
@@ -11,7 +10,6 @@ extension _ModelsPart on LayerXGenerator {
       path.join(appDirPath, 'mvvm', 'model', 'api_response_model'),
     );
 
-    // ✅ TEST BODY MODEL (simple)
     await File(
       path.join(bodyModelDir.path, 'test_body_model.dart'),
     ).writeAsString('''

@@ -1,6 +1,5 @@
 part of 'package:layerx_generator/src/layerx_generator.dart';
 
-// ========================= APP WIDGET + MAIN =========================
 
 extension _AppPart on LayerXGenerator {
   Future<void> _createAppWidgetFile(String projectPath) async {
