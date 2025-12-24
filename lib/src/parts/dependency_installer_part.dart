@@ -13,7 +13,7 @@ class DependencyInstaller {
     'intl': '^0.20.2',
     'timezone': '^0.10.0',
     'flutter_local_notifications': '^19.5.0',
-    'permission_handler': 'any',
+    'permission_handler': '^12.0.1',
     'flutter_timezone': '^5.0.1',
   };
 

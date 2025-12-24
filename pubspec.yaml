@@ -20,7 +20,6 @@ dev_dependencies:
 executables:
   layerx_generator: layerx_generator
 
-# Optional (helps discoverability on pub.dev)
 topics:
   - flutter
   - getx
