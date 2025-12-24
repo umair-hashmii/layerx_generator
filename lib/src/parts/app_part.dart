@@ -31,6 +31,9 @@ class LayerXApp extends StatelessWidget {
           darkTheme: AppTheme.darkTheme,
           initialRoute: AppRoutes.splashView,
           getPages: AppPages.routes,
+
+          // ✅ Future-ready (optional)
+          // initialBinding: InitialBinding(),
         );
       },
     );
@@ -48,8 +51,13 @@ class LayerXApp extends StatelessWidget {
 import 'package:flutter/material.dart';
 import 'app/app_widget.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ✅ Uncomment when Firebase / Notifications are enabled
+  // await Firebase.initializeApp();
+  // NotificationService.initialize();
+
   runApp(const LayerXApp());
 }
 ''');

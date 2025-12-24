@@ -61,7 +61,7 @@ class LayerXGenerator {
         'repository/local_db',
         'repository/apis',
         'services',
-        'services/notifications', // ✅ ADDED
+        'services/notifications',
         'widgets',
       ];
 
@@ -75,7 +75,7 @@ class LayerXGenerator {
       await _createMVVMSkeleton(appDir.path);
       await _createModelFiles(appDir.path);
       await _createServiceFiles(appDir.path);
-      await _createNotificationFiles(appDir.path); // ✅ ADDED
+      await _createNotificationFiles(appDir.path);
       await _createRepositoryFiles(appDir.path);
       await _createAppWidgetFile(projectPath);
       await _updateMainFile(projectPath);

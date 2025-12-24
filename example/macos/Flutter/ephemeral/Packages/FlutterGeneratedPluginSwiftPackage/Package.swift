@@ -9,23 +9,23 @@ import PackageDescription
 let package = Package(
     name: "FlutterGeneratedPluginSwiftPackage",
     platforms: [
-        .macOS("10.14")
+        .macOS("10.15")
     ],
     products: [
         .library(name: "FlutterGeneratedPluginSwiftPackage", type: .static, targets: ["FlutterGeneratedPluginSwiftPackage"])
     ],
     dependencies: [
-        .package(name: "geolocator_apple", path: "/Users/umairhashmi/.pub-cache/hosted/pub.dev/geolocator_apple-2.3.13/darwin/geolocator_apple"),
-        .package(name: "path_provider_foundation", path: "/Users/umairhashmi/.pub-cache/hosted/pub.dev/path_provider_foundation-2.4.1/darwin/path_provider_foundation"),
-        .package(name: "shared_preferences_foundation", path: "/Users/umairhashmi/.pub-cache/hosted/pub.dev/shared_preferences_foundation-2.5.4/darwin/shared_preferences_foundation")
+        .package(name: "shared_preferences_foundation", path: "../.packages/shared_preferences_foundation"),
+        .package(name: "path_provider_foundation", path: "../.packages/path_provider_foundation"),
+        .package(name: "geolocator_apple", path: "../.packages/geolocator_apple")
     ],
     targets: [
         .target(
             name: "FlutterGeneratedPluginSwiftPackage",
             dependencies: [
-                .product(name: "geolocator-apple", package: "geolocator_apple"),
+                .product(name: "shared-preferences-foundation", package: "shared_preferences_foundation"),
                 .product(name: "path-provider-foundation", package: "path_provider_foundation"),
-                .product(name: "shared-preferences-foundation", package: "shared_preferences_foundation")
+                .product(name: "geolocator-apple", package: "geolocator_apple")
             ]
         )
     ]

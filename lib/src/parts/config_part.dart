@@ -84,7 +84,70 @@ abstract class AppPages {
 ''');
 
     await File(path.join(configDir.path, 'app_theme.dart')).writeAsString('''
-// your same commented AppTheme code as-is
+// import 'package:flutter/material.dart';
+// import 'package:flutter_screenutil/flutter_screenutil.dart';
+// import 'package:google_fonts/google_fonts.dart';
+//
+// import 'app_colors.dart';
+//
+// abstract class AppTheme {
+//   AppTheme._();
+//
+//   static const _primaryColor = AppColors.primary;
+//   static const _borderRadius = 12.0;
+//
+//   static final ThemeData lightTheme = ThemeData(
+//     useMaterial3: true,
+//     brightness: Brightness.light,
+//     primaryColor: _primaryColor,
+//     scaffoldBackgroundColor: AppColors.secondaryWhite,
+//     colorScheme: const ColorScheme.light(primary: _primaryColor),
+//     appBarTheme: AppBarTheme(
+//       elevation: 0,
+//       backgroundColor: AppColors.secondaryWhite,
+//       foregroundColor: AppColors.textDarkColor,
+//       titleTextStyle: GoogleFonts.poppins(
+//         fontSize: 18.sp,
+//         fontWeight: FontWeight.w600,
+//         color: AppColors.textDarkColor,
+//       ),
+//     ),
+//     textTheme: GoogleFonts.poppinsTextTheme(),
+//     cardTheme: CardTheme(
+//       color: AppColors.secondaryWhite,
+//       elevation: 2,
+//       shape: RoundedRectangleBorder(
+//         borderRadius: BorderRadius.circular(_borderRadius),
+//       ),
+//     ),
+//   );
+//
+//   static final ThemeData darkTheme = ThemeData(
+//     useMaterial3: true,
+//     brightness: Brightness.dark,
+//     primaryColor: _primaryColor,
+//     scaffoldBackgroundColor: AppColors.darkBgColor,
+//     colorScheme: const ColorScheme.dark(primary: _primaryColor),
+//     appBarTheme: AppBarTheme(
+//       elevation: 0,
+//       backgroundColor: AppColors.darkBgColor,
+//       foregroundColor: AppColors.secondaryWhite,
+//       titleTextStyle: GoogleFonts.poppins(
+//         fontSize: 18.sp,
+//         fontWeight: FontWeight.w600,
+//         color: AppColors.secondaryWhite,
+//       ),
+//     ),
+//     textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+//     cardTheme: CardTheme(
+//       color: AppColors.secondaryBlack,
+//       elevation: 2,
+//       shape: RoundedRectangleBorder(
+//         borderRadius: BorderRadius.circular(_borderRadius),
+//       ),
+//     ),
+//   );
+// }
 ''');
 
     await File(path.join(configDir.path, 'app_strings.dart')).writeAsString('''

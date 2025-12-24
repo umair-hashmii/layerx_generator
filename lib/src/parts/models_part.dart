@@ -4,27 +4,28 @@ part of layerx_generator;
 
 extension _ModelsPart on LayerXGenerator {
   Future<void> _createModelFiles(String appDirPath) async {
-    final bodyModelDir = Directory(path.join(appDirPath, 'mvvm', 'model', 'body_model'));
-    final apiResponseModelDir = Directory(path.join(appDirPath, 'mvvm', 'model', 'api_response_model'));
+    final bodyModelDir =
+    Directory(path.join(appDirPath, 'mvvm', 'model', 'body_model'));
+    final apiResponseModelDir =
+    Directory(path.join(appDirPath, 'mvvm', 'model', 'api_response_model'));
 
-    await File(path.join(bodyModelDir.path, 'driver_signup_body_model.dart')).writeAsString('''
-import 'dart:io';
-
-/// Model for driver signup data with multipart support.
-class DriverSignupBodyModel {
+    // ✅ TEST BODY MODEL (simple)
+    await File(path.join(bodyModelDir.path, 'test_body_model.dart'))
+        .writeAsString('''
+/// Basic test body model (JSON only).
+class TestBodyModel {
   String? name;
   String? email;
-  File? image;
-  List<File>? documents;
-  File? details;
 
-  DriverSignupBodyModel({
+  TestBodyModel({
     this.name,
     this.email,
-    this.image,
-    this.documents,
-    this.details,
   });
+
+  factory TestBodyModel.fromJson(Map<String, dynamic> json) => TestBodyModel(
+        name: json['name'] as String?,
+        email: json['email'] as String?,
+      );
 
   Map<String, dynamic> toJson() => {
         'name': name,
@@ -33,66 +34,76 @@ class DriverSignupBodyModel {
 }
 ''');
 
-    await File(path.join(bodyModelDir.path, 'garage_signup_body_model.dart')).writeAsString('''
+    // ✅ TEST UPLOAD BODY MODEL (single file)
+    await File(path.join(bodyModelDir.path, 'test_upload_body_model.dart'))
+        .writeAsString('''
 import 'dart:io';
 
-/// Model for garage signup data with multipart support.
-class GarageSignupBodyModel {
-  String? name;
-  File? image;
+/// Test body model with single file upload support.
+class TestUploadBodyModel {
+  String? title;
+  File? file;
 
-  GarageSignupBodyModel({this.name, this.image});
-
-  Map<String, dynamic> toJson() => {
-        'name': name,
-      };
-}
-''');
-
-    await File(path.join(bodyModelDir.path, 'buy_car_request_model.dart')).writeAsString('''
-import 'dart:io';
-
-/// Model for buy car request with multipart support.
-class BuyCarRequestModel {
-  String? name;
-  File? image;
-
-  BuyCarRequestModel({this.name, this.image});
-
-  Map<String, dynamic> toJson() => {
-        'name': name,
-      };
-}
-''');
-
-    await File(path.join(bodyModelDir.path, 'add_car_body_model.dart')).writeAsString('''
-import 'dart:io';
-
-/// Model for adding car data with multipart support.
-class AddCarBodyModel {
-  String? model;
-  File? image;
-  File? insuranceDocument;
-  File? inspectionDocument;
-  File? registrationDocument;
-  List<File>? additionalDocuments;
-
-  AddCarBodyModel({
-    this.model,
-    this.image,
-    this.insuranceDocument,
-    this.inspectionDocument,
-    this.registrationDocument,
-    this.additionalDocuments,
+  TestUploadBodyModel({
+    this.title,
+    this.file,
   });
 
   Map<String, dynamic> toJson() => {
-        'model': model,
+        'title': title,
       };
 }
 ''');
 
-    await File(path.join(apiResponseModelDir.path, 'api_response.dart')).writeAsString('''
+    // ✅ TEST REQUEST BODY MODEL (another simple sample)
+    await File(path.join(bodyModelDir.path, 'test_request_body_model.dart'))
+        .writeAsString('''
+import 'dart:io';
+
+/// Test request model with basic multipart structure.
+class TestRequestBodyModel {
+  String? note;
+  File? image;
+
+  TestRequestBodyModel({
+    this.note,
+    this.image,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'note': note,
+      };
+}
+''');
+
+    // ✅ TEST MULTIPART BODY MODEL (multiple docs)
+    await File(path.join(bodyModelDir.path, 'test_multipart_body_model.dart'))
+        .writeAsString('''
+import 'dart:io';
+
+/// Test multipart model showing all common file fields.
+class TestMultipartBodyModel {
+  String? title;
+  File? image;
+  File? document;
+  List<File>? documents;
+
+  TestMultipartBodyModel({
+    this.title,
+    this.image,
+    this.document,
+    this.documents,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+      };
+}
+''');
+
+    // ✅ API RESPONSE MODEL (core)
+    await File(path.join(apiResponseModelDir.path, 'api_response.dart'))
+        .writeAsString('''
 /// Generic API response model for flexible data parsing.
 class ApiResponse<T> {
   final bool? success;
