@@ -23,7 +23,7 @@ Add the package to your project by updating `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  layerx_generator: ^2.0.1
+  layerx_generator: ^2.0.2
 ```
 
 Run:
@@ -183,9 +183,23 @@ dev_dependencies:
     sdk: flutter
 ```
 
-## Changelog
+## 📦 Changelog
 
-### [2.0.1] - 2025-08-20
+## [2.0.2] – 2025-08-24
+
+- Added **Notification Services module** under `services/notifications`.
+- Firebase Cloud Messaging (FCM) permission handling with proper authorization states.
+- Local notification support using `flutter_local_notifications`.
+- Foreground, background, and notification-tap handling hooks.
+- Timezone-aware scheduled notifications using `timezone` + `flutter_timezone`.
+- Device token retrieval utility for backend registration.
+- Secure server key helper for FCM HTTP v1 (OAuth access token based).
+- Generator now produces **notification-ready infrastructure** without forcing Firebase
+  initialization, keeping projects compile-safe by default.
+
+---
+
+## [2.0.1] – 2025-08-20
 
 - Connection pooling with HTTP/2 multiplexing, TLS resumption, and gzip/deflate for faster
   handshakes and reduced CPU/RAM usage.
@@ -214,18 +228,24 @@ dev_dependencies:
 - Monitoring hooks with built-in interceptors for latency, retries, payload size, and socket reuse
   for easy profiling and SLA tracking.
 
-### v2.0.0
+---
+
+## [2.0.0]
 
 - Removed automatic pubspec.yaml modification to prevent overwriting project configurations.
 - Users must now manually add required dependencies to pubspec.yaml.
 
-### v0.0.2
+---
+
+## [0.0.2]
 
 - Added CLI and programmatic support.
 - Improved MVVM structure.
 - Included service utilities for HTTP calls, shared preferences, and JSON extraction.
 
-### v0.0.1
+---
+
+## [0.0.1]
 
 - Initial release with basic directory generation.
 

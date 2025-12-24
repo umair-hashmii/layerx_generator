@@ -1,6 +1,6 @@
 name: layerx_generator
 description: A Flutter package that auto-generates a structured LayerX directory with GetX integration, MVVM pattern, and essential services for scalable projects.
-version: 2.0.0
+version: 2.0.2
 homepage: https://github.com/Umaiir11/layerx_generator
 repository: https://github.com/Umaiir11/layerx_generator
 issue_tracker: https://github.com/Umaiir11/layerx_generator/issues
@@ -11,6 +11,7 @@ environment:
 dependencies:
   args: ^2.7.0
   path: ^1.9.1
+
 
 dev_dependencies:
   test: ^1.28.0

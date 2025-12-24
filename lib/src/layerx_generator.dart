@@ -8,7 +8,10 @@
 library layerx_generator;
 
 import 'dart:io';
+import 'package:layerx_generator/src/parts/dependency_installer_part.dart';
 import 'package:path/path.dart' as path;
+
+// ✅ NEW: dependency installer (your safe add-only logic)
 
 part 'parts/config_part.dart';
 part 'parts/mvvm_part.dart';
@@ -26,11 +29,18 @@ part 'parts/https_calls_part.dart';
 /// - All routes point to a generated view.
 /// - Repositories only call methods that exist in services.
 /// - Body models that use File include `dart:io`.
-/// - Pubspec auto-updated to include required dependencies (so `flutter run` works without errors).
+/// - (Optional) Can auto-add missing dependencies to pubspec.yaml (never overrides existing).
 class LayerXGenerator {
   final String projectPath;
 
-  LayerXGenerator(this.projectPath);
+  /// ✅ If true, it will add only missing LayerX deps to pubspec.yaml
+  /// (won't touch existing versions, won't reformat)
+  final bool installDeps;
+
+  LayerXGenerator(
+      this.projectPath, {
+        this.installDeps = true,
+      });
 
   Future<void> generate() async {
     try {
@@ -42,6 +52,12 @@ class LayerXGenerator {
       final libDir = Directory(path.join(projectPath, 'lib'));
       if (!await libDir.exists()) {
         throw Exception('Not a Flutter project (missing lib/): $projectPath');
+      }
+
+      // ✅ NEW: safely add missing deps (optional)
+      if (installDeps) {
+        await DependencyInstaller.install(projectPath);
+        stdout.writeln('✅ Added missing LayerX dependencies (no overrides).');
       }
 
       final appDir = Directory(path.join(projectPath, 'lib', 'app'));
