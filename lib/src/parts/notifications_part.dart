@@ -4,18 +4,22 @@ part of layerx_generator;
 
 extension _NotificationsPart on LayerXGenerator {
   Future<void> _createNotificationFiles(String appDirPath) async {
-    final notifDir =
-    Directory(path.join(appDirPath, 'services', 'notifications'));
+    final notifDir = Directory(
+      path.join(appDirPath, 'services', 'notifications'),
+    );
     await notifDir.create(recursive: true);
 
-    await File(path.join(notifDir.path, 'notification_permissions.dart'))
-        .writeAsString(_notificationPermissionsContent());
+    await File(
+      path.join(notifDir.path, 'notification_permissions.dart'),
+    ).writeAsString(_notificationPermissionsContent());
 
-    await File(path.join(notifDir.path, 'notification_service.dart'))
-        .writeAsString(_notificationServiceContent());
+    await File(
+      path.join(notifDir.path, 'notification_service.dart'),
+    ).writeAsString(_notificationServiceContent());
 
-    await File(path.join(notifDir.path, 'server_key.dart'))
-        .writeAsString(_serverKeyContent());
+    await File(
+      path.join(notifDir.path, 'server_key.dart'),
+    ).writeAsString(_serverKeyContent());
 
     stdout.writeln('✅ Created notification files in services/notifications/');
   }

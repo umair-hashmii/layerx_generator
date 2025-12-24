@@ -172,7 +172,9 @@ abstract class AppUrls {
 }
 ''');
 
-    await File(path.join(configDir.path, 'padding_extensions.dart')).writeAsString('''
+    await File(
+      path.join(configDir.path, 'padding_extensions.dart'),
+    ).writeAsString('''
 import 'package:flutter/material.dart';
 
 /// Adds padding extensions for widgets in the LayerX app.

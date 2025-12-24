@@ -6,7 +6,9 @@ extension _ServicesPart on LayerXGenerator {
   Future<void> _createServiceFiles(String appDirPath) async {
     final servicesDir = Directory(path.join(appDirPath, 'services'));
 
-    await File(path.join(servicesDir.path, 'logger_service.dart')).writeAsString('''
+    await File(
+      path.join(servicesDir.path, 'logger_service.dart'),
+    ).writeAsString('''
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
@@ -63,8 +65,9 @@ class LoggerService {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'shared_preferences_service.dart'))
-        .writeAsString('''
+    await File(
+      path.join(servicesDir.path, 'shared_preferences_service.dart'),
+    ).writeAsString('''
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'logger_service.dart';
@@ -117,8 +120,9 @@ class SharedPreferencesService {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'global_variables.dart'))
-        .writeAsString('''
+    await File(
+      path.join(servicesDir.path, 'global_variables.dart'),
+    ).writeAsString('''
 import '../config/app_enums.dart';
 
 /// Global variables for the LayerX app.
@@ -129,8 +133,9 @@ class GlobalVariables {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'json_extractor.dart'))
-        .writeAsString('''
+    await File(
+      path.join(servicesDir.path, 'json_extractor.dart'),
+    ).writeAsString('''
 import 'dart:convert';
 import 'package:logger/logger.dart';
 import 'global_variables.dart';
@@ -202,8 +207,9 @@ class MessageExtractor {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'location_service.dart'))
-        .writeAsString('''
+    await File(
+      path.join(servicesDir.path, 'location_service.dart'),
+    ).writeAsString('''
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'logger_service.dart';
@@ -237,8 +243,9 @@ class LocationService {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'api_response_handler.dart'))
-        .writeAsString('''
+    await File(
+      path.join(servicesDir.path, 'api_response_handler.dart'),
+    ).writeAsString('''
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -342,8 +349,9 @@ class ApiResponseHandler {
 }
 ''');
 
-    await File(path.join(servicesDir.path, 'https_calls.dart'))
-        .writeAsString(_httpsCallsContent());
+    await File(
+      path.join(servicesDir.path, 'https_calls.dart'),
+    ).writeAsString(_httpsCallsContent());
 
     stdout.writeln('Created service files.');
   }

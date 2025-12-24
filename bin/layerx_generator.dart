@@ -5,10 +5,12 @@ import 'package:layerx_generator/layerx_generator.dart';
 
 void main(List<String> arguments) async {
   final parser = ArgParser()
-    ..addOption('path',
-        abbr: 'p',
-        help: 'Path to the Flutter project directory',
-        defaultsTo: '.');
+    ..addOption(
+      'path',
+      abbr: 'p',
+      help: 'Path to the Flutter project directory',
+      defaultsTo: '.',
+    );
 
   final results = parser.parse(arguments);
   final projectPath = results['path'] as String;

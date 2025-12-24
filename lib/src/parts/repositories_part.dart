@@ -4,18 +4,19 @@ part of layerx_generator;
 
 extension _RepositoriesPart on LayerXGenerator {
   Future<void> _createRepositoryFiles(String appDirPath) async {
-    final authRepoDir =
-    Directory(path.join(appDirPath, 'repository', 'auth_repo'));
-    final apiRepoDir =
-    Directory(path.join(appDirPath, 'repository', 'apis'));
+    final authRepoDir = Directory(
+      path.join(appDirPath, 'repository', 'auth_repo'),
+    );
+    final apiRepoDir = Directory(path.join(appDirPath, 'repository', 'apis'));
 
     await authRepoDir.create(recursive: true);
     await apiRepoDir.create(recursive: true);
 
     // ================= AUTH REPOSITORY =================
 
-    await File(path.join(authRepoDir.path, 'auth_repository.dart'))
-        .writeAsString('''
+    await File(
+      path.join(authRepoDir.path, 'auth_repository.dart'),
+    ).writeAsString('''
 import '../../config/app_urls.dart';
 import '../../mvvm/model/api_response_model/api_response.dart';
 import '../../mvvm/model/body_model/driver_signup_body_model.dart';
@@ -77,8 +78,9 @@ class AuthRepository {
 
     // ================= DATA REPOSITORY =================
 
-    await File(path.join(apiRepoDir.path, 'data_repository.dart'))
-        .writeAsString('''
+    await File(
+      path.join(apiRepoDir.path, 'data_repository.dart'),
+    ).writeAsString('''
 import '../../config/app_urls.dart';
 import '../../mvvm/model/api_response_model/api_response.dart';
 import '../../mvvm/model/body_model/add_car_body_model.dart';

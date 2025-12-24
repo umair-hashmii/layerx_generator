@@ -4,6 +4,19 @@ All notable changes to the `layerx_generator` Flutter package are documented in 
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+## [2.0.2] – 2025-08-24
+
+- Added **Notification Services module** under `services/notifications`.
+- Firebase Cloud Messaging (FCM) permission handling with proper authorization states.
+- Local notification support using `flutter_local_notifications`.
+- Foreground, background, and notification-tap handling hooks.
+- Timezone-aware scheduled notifications using `timezone` + `flutter_timezone`.
+- Device token retrieval utility for backend registration.
+- Secure server key helper for FCM HTTP v1 (OAuth access token based).
+- Generator now produces **notification-ready infrastructure** without forcing Firebase
+  initialization, keeping projects compile-safe by default.
+
+---
 
 
 ## [2.0.1] - 2025-06-03
@@ -35,10 +48,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 ### Changed
 - **Breaking**: Refactored core generator logic to support plugin-based extensions, requiring updates to existing usage.
 - Upgraded dependencies to latest versions for improved performance and compatibility:
-  - `get: ^4.6.6`
-  - `flutter_screenutil: ^5.9.0`
-  - `http: ^1.1.0`
-  - `logger: ^2.0.0`
+    - `get: ^4.6.6`
+    - `flutter_screenutil: ^5.9.0`
+    - `http: ^1.1.0`
+    - `logger: ^2.0.0`
 - Improved error reporting with detailed diagnostics in `LoggerService`.
 
 ### Removed
@@ -61,22 +74,22 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 - `ApiResponseHandler` for unified API response processing with `GetX` support.
 - `LoggerService` for consistent and clean log management across all services.
 - New body models:
-  - `DriverSignupBodyModel`
-  - `GarageSignupBodyModel`
-  - `AddCarBodyModel`
-  - `BuyCarRequestModel`
+    - `DriverSignupBodyModel`
+    - `GarageSignupBodyModel`
+    - `AddCarBodyModel`
+    - `BuyCarRequestModel`
 - Generic `ApiResponse<T>` model for flexible and type-safe API data handling.
 
 ### Changed
 - Enhanced `HttpsCalls` for advanced `MultipartRequest` handling across:
-  - Driver/Garage profile uploads
-  - Car create/update/delete operations
-  - Car buying requests
+    - Driver/Garage profile uploads
+    - Car create/update/delete operations
+    - Car buying requests
 - Standardized repository implementation via `AuthRepository` and `DataRepository` using `ApiResponseHandler`.
 - Renamed `ApiUrls` to `AppUrls` for naming consistency.
 - Upgraded dependencies:
-  - `geolocator: ^10.0.0`
-  - `permission_handler: ^10.0.0`
+    - `geolocator: ^10.0.0`
+    - `permission_handler: ^10.0.0`
 - Improved generator logic with better documentation and scalability.
 
 ---

@@ -4,14 +4,17 @@ part of layerx_generator;
 
 extension _ModelsPart on LayerXGenerator {
   Future<void> _createModelFiles(String appDirPath) async {
-    final bodyModelDir =
-    Directory(path.join(appDirPath, 'mvvm', 'model', 'body_model'));
-    final apiResponseModelDir =
-    Directory(path.join(appDirPath, 'mvvm', 'model', 'api_response_model'));
+    final bodyModelDir = Directory(
+      path.join(appDirPath, 'mvvm', 'model', 'body_model'),
+    );
+    final apiResponseModelDir = Directory(
+      path.join(appDirPath, 'mvvm', 'model', 'api_response_model'),
+    );
 
     // ✅ TEST BODY MODEL (simple)
-    await File(path.join(bodyModelDir.path, 'test_body_model.dart'))
-        .writeAsString('''
+    await File(
+      path.join(bodyModelDir.path, 'test_body_model.dart'),
+    ).writeAsString('''
 /// Basic test body model (JSON only).
 class TestBodyModel {
   String? name;
@@ -35,8 +38,9 @@ class TestBodyModel {
 ''');
 
     // ✅ TEST UPLOAD BODY MODEL (single file)
-    await File(path.join(bodyModelDir.path, 'test_upload_body_model.dart'))
-        .writeAsString('''
+    await File(
+      path.join(bodyModelDir.path, 'test_upload_body_model.dart'),
+    ).writeAsString('''
 import 'dart:io';
 
 /// Test body model with single file upload support.
@@ -56,8 +60,9 @@ class TestUploadBodyModel {
 ''');
 
     // ✅ TEST REQUEST BODY MODEL (another simple sample)
-    await File(path.join(bodyModelDir.path, 'test_request_body_model.dart'))
-        .writeAsString('''
+    await File(
+      path.join(bodyModelDir.path, 'test_request_body_model.dart'),
+    ).writeAsString('''
 import 'dart:io';
 
 /// Test request model with basic multipart structure.
@@ -77,8 +82,9 @@ class TestRequestBodyModel {
 ''');
 
     // ✅ TEST MULTIPART BODY MODEL (multiple docs)
-    await File(path.join(bodyModelDir.path, 'test_multipart_body_model.dart'))
-        .writeAsString('''
+    await File(
+      path.join(bodyModelDir.path, 'test_multipart_body_model.dart'),
+    ).writeAsString('''
 import 'dart:io';
 
 /// Test multipart model showing all common file fields.
@@ -102,8 +108,9 @@ class TestMultipartBodyModel {
 ''');
 
     // ✅ API RESPONSE MODEL (core)
-    await File(path.join(apiResponseModelDir.path, 'api_response.dart'))
-        .writeAsString('''
+    await File(
+      path.join(apiResponseModelDir.path, 'api_response.dart'),
+    ).writeAsString('''
 /// Generic API response model for flexible data parsing.
 class ApiResponse<T> {
   final bool? success;

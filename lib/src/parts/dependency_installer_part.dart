@@ -66,7 +66,9 @@ class DependencyInstaller {
         continue;
       }
 
-      if (inDependencies && i + 1 < lines.length && !lines[i + 1].startsWith(' ')) {
+      if (inDependencies &&
+          i + 1 < lines.length &&
+          !lines[i + 1].startsWith(' ')) {
         newLines.add(buffer.toString());
         inserted = true;
         inDependencies = false;

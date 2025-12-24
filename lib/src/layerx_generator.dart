@@ -37,10 +37,7 @@ class LayerXGenerator {
   /// (won't touch existing versions, won't reformat)
   final bool installDeps;
 
-  LayerXGenerator(
-      this.projectPath, {
-        this.installDeps = true,
-      });
+  LayerXGenerator(this.projectPath, {this.installDeps = true});
 
   Future<void> generate() async {
     try {
