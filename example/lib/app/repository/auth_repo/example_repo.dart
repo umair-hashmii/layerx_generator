@@ -1,7 +1,3 @@
-import 'package:get/get.dart';
-import '../../services/https_service.dart';
-import '../../services/json_extractor.dart';
-
 // class ExampleRepo {
 //   final HttpsCalls _httpsCalls = HttpsCalls();
 //   final MessageExtractor _messageExtractor = MessageExtractor();

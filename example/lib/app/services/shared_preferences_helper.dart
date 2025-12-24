@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
 
 class SharedPreferencesService {
-  static const String _keyDataModel = 'data_model';
   static const String _keyUserData = 'user_data';
   static const String _deviceToken = 'deviceToken';
   static const String _apiToken = 'apiToken';

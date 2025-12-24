@@ -1,13 +1,36 @@
 import 'dart:io';
 import 'package:layerx_generator/layerx_generator.dart';
 import 'package:test/test.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   group('LayerXGenerator', () {
-    test('generates directory structure', () async {
-      final tempDir = Directory('test_temp');
+    late Directory tempDir;
+
+    setUp(() async {
+      tempDir = Directory('test_temp');
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
       await tempDir.create();
 
+      // Setup minimal Flutter project structure
+      await Directory(p.join(tempDir.path, 'lib')).create();
+      await File(p.join(tempDir.path, 'pubspec.yaml')).writeAsString('''
+name: test_project
+dependencies:
+  flutter:
+    sdk: flutter
+''');
+    });
+
+    tearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    test('generates directory structure', () async {
       final generator = LayerXGenerator(tempDir.path);
       await generator.generate();
 
@@ -34,9 +57,6 @@ void main() {
         ).existsSync(),
         true,
       );
-
-      // Clean up
-      await tempDir.delete(recursive: true);
     });
   });
 }

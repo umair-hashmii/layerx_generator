@@ -1,4 +1,4 @@
-part of layerx_generator;
+part of 'package:layerx_generator/src/layerx_generator.dart';
 
 // ========================= CONFIG =========================
 

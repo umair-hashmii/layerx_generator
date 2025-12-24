@@ -5,7 +5,7 @@
 /// pre-configured utilities for HTTP requests, local storage, location services, logging,
 /// and API response handling, all integrated with GetX for state management, navigation,
 /// and dependency injection.
-library layerx_generator;
+library;
 
 import 'dart:io';
 import 'package:layerx_generator/src/parts/dependency_installer_part.dart';
