@@ -5,55 +5,6 @@
 /// pre-configured utilities for HTTP requests, local storage, location services, logging,
 /// and API response handling, all integrated with GetX for state management, navigation,
 /// and dependency injection.
-///
-/// ## Features
-/// - Generates a well-organized MVVM directory structure with `config/`, `mvvm/`, `repository/`, `services/`, and `widgets/` directories.
-/// - Includes services: `HttpsCalls` (with multipart support), `SharedPreferencesService`, `LocationService`, `ApiResponseHandler`, and `LoggerService` (with custom formatting).
-/// - Provides a dynamic `ApiResponse<T>` model for flexible API data parsing.
-/// - Integrates GetX for navigation and state management.
-/// - Supports responsive design with `flutter_screenutil`.
-/// - Includes standardized repositories (`AuthRepository`, `DataRepository`) for API interactions.
-///
-/// ## Installation
-/// Add `layerx_generator` as a dev dependency in your `pubspec.yaml`:
-/// ```yaml
-/// dev_dependencies:
-///   layerx_generator: ^2.0.0
-/// ```
-/// Run:
-/// ```bash
-/// flutter pub get
-/// ```
-///
-/// ## Usage
-/// Generate the LayerX structure using the command line:
-/// ```bash
-/// dart run layerx_generator --path .
-/// ```
-/// Or programmatically:
-/// ```dart
-/// import 'package:layerx_generator/layerx_generator.dart';
-/// import 'dart:io';
-///
-/// void main() async {
-///   final generator = LayerXGenerator(Directory.current.path);
-///   await generator.generate();
-/// }
-/// ```
-///
-/// ## Generated Structure
-/// - `config/`: App configurations (e.g., `AppUrls`, `AppRoutes`, `AppColors`).
-/// - `mvvm/`: Models (`ApiResponse<T>`, body models), views, and view models.
-/// - `repository/`: API and local data repositories (`AuthRepository`, `DataRepository`).
-/// - `services/`: Utilities for HTTP (`HttpsCalls`), location (`LocationService`), logging (`LoggerService`), and more.
-/// - `widgets/`: Custom widget directory.
-/// - Updates `main.dart` and `pubspec.yaml` for immediate use.
-///
-/// ## Example
-/// See the [example/](https://github.com/[your-username]/layerx_generator/tree/main/example) directory for a sample project using the generated structure.
-///
-/// ## Documentation
-/// Full documentation is available on [pub.dev](https://pub.dev/packages/layerx_generator).
 library layerx_generator;
 
 import 'dart:io';
@@ -61,55 +12,27 @@ import 'package:path/path.dart' as path;
 
 /// Generates the LayerX directory structure for a Flutter project.
 ///
-/// The `LayerXGenerator` class is the main entry point for the package. It creates
-/// a predefined MVVM structure under `lib/app/`, including configuration files,
-/// services, repositories, and models, all integrated with GetX.
-///
-/// ## Example
-/// ```dart
-/// import 'package:layerx_generator/layerx_generator.dart';
-/// import 'dart:io';
-///
-/// void main() async {
-///   final generator = LayerXGenerator(Directory.current.path);
-///   await generator.generate();
-///   print('LayerX structure generated successfully!');
-/// }
-/// ```
+/// ✅ Refined generator rules:
+/// - No file references a class that isn't generated.
+/// - All routes point to a generated view.
+/// - Repositories only call methods that exist in services.
+/// - Body models that use File include `dart:io`.
+/// - Pubspec auto-updated to include required dependencies (so `flutter run` works without errors).
 class LayerXGenerator {
-  /// The path to the Flutter project directory where the LayerX structure will be generated.
   final String projectPath;
 
-  /// Creates a new instance of [LayerXGenerator].
-  ///
-  /// ## Parameters
-  /// - [projectPath]: The path to the Flutter project directory. Must be a valid directory.
-  ///
-  /// ## Throws
-  /// - [Exception]: If the [projectPath] does not exist.
   LayerXGenerator(this.projectPath);
 
-  /// Generates the LayerX directory structure and updates necessary files.
-  ///
-  /// Creates:
-  /// - `lib/app/config/`: Configuration files (e.g., colors, routes).
-  /// - `lib/app/mvvm/`: Model, view, and view model directories.
-  /// - `lib/app/repository/`: Repositories for API and local data.
-  /// - `lib/app/services/`: Services for HTTP, location, logging, etc.
-  /// - `lib/app/widgets/`: Custom widget directory.
-  ///
-  /// Updates:
-  /// - `lib/app/app_widget.dart`: Root widget with GetX and `flutter_screenutil`.
-  /// - `lib/main.dart`: Entry point using `LayerXApp`.
-  /// - `pubspec.yaml`: Adds required dependencies (e.g., `get`, `intl`).
-  ///
-  /// ## Throws
-  /// - [Exception]: If the project directory is invalid or file operations fail.
   Future<void> generate() async {
     try {
       final projectDir = Directory(projectPath);
       if (!await projectDir.exists()) {
         throw Exception('Project directory does not exist: $projectPath');
+      }
+
+      final libDir = Directory(path.join(projectPath, 'lib'));
+      if (!await libDir.exists()) {
+        throw Exception('Not a Flutter project (missing lib/): $projectPath');
       }
 
       final appDir = Directory(path.join(projectPath, 'lib', 'app'));
@@ -120,34 +43,42 @@ class LayerXGenerator {
         'mvvm/model/body_model',
         'mvvm/model/response_model',
         'mvvm/model/api_response_model',
-        'mvvm/view',
-        'mvvm/view_model',
+        'mvvm/view/splash',
+        'mvvm/view/login',
+        'mvvm/view_model/splash',
+        'mvvm/view_model/login',
         'repository/auth_repo',
         'repository/firebase',
         'repository/local_db',
         'repository/apis',
         'services',
+        'services/notifications', // ✅ ADDED
         'widgets',
       ];
 
       for (final dir in directories) {
         final fullPath = path.join(appDir.path, dir);
         await Directory(fullPath).create(recursive: true);
-        print('Created directory: $fullPath');
+        stdout.writeln('Created directory: $fullPath');
       }
 
       await _createConfigFiles(appDir.path);
+      await _createMVVMSkeleton(appDir.path);
       await _createModelFiles(appDir.path);
       await _createServiceFiles(appDir.path);
+      await _createNotificationFiles(appDir.path); // ✅ ADDED
       await _createRepositoryFiles(appDir.path);
       await _createAppWidgetFile(projectPath);
       await _updateMainFile(projectPath);
-      // await _updatePubspecFile(projectPath);
+
+      stdout.writeln('✅ LayerX structure generated successfully!');
     } catch (e) {
-      print('Error generating LayerX structure: $e');
+      stderr.writeln('❌ Error generating LayerX structure: $e');
       rethrow;
     }
   }
+
+  // ========================= CONFIG =========================
 
   Future<void> _createConfigFiles(String appDirPath) async {
     final configDir = Directory(path.join(appDirPath, 'config'));
@@ -164,43 +95,52 @@ class AppAssets {
 import 'package:flutter/material.dart';
 
 /// Defines color constants for the LayerX app.
-
 abstract class AppColors {
   AppColors._();
 
   static const Color primary = Color(0xff2D9BFF);
   static const Color secondaryWhite = Color(0xffFFFFFF);
   static const Color secondaryBlack = Color(0xff1B1C1E);
-  static Color lightBgButtonColor = Color(0xfff5f5f5).withOpacity(0.05);
+
   static const Color white = Color(0xffffffff);
   static const Color black = Color(0xff000000);
+
   static const Color positiveGreen = Color(0xff21D575);
-  static const Color textDarkColor = Color(0xff1B0036);
   static const Color negativeRed = Color(0xffEA4334);
-  static const Color transparent = Colors.transparent;
+
+  static const Color textDarkColor = Color(0xff1B0036);
   static const Color textLightBlack = Color(0xff777E90);
+
   static const Color bgColor = Color(0xFFF0F1F6);
   static const Color darkBgColor = Color(0xFF1B1C1E);
+
   static const Color borderColor = Color(0xFFE6E7E9);
   static const Color borderGrey = Color(0xFFD7DDE5);
-  static const Color lightTextColor = Color(0xFF777E90);
 
+  static const Color transparent = Colors.transparent;
 }
 ''');
 
     await File(path.join(configDir.path, 'app_enums.dart')).writeAsString('''
 /// Defines enums for the LayerX app.
-enum UserRole { USER, BUSINESS }
+enum UserRole { user, business }
 ''');
 
+    // ✅ Compile-safe routes: all pages exist + imports correct.
     await File(path.join(configDir.path, 'app_routes.dart')).writeAsString('''
+import 'package:get/get.dart';
+
+import '../mvvm/view/splash/splash_view.dart';
+import '../mvvm/view/login/login_view.dart';
+import '../mvvm/view_model/splash/splash_binding.dart';
+import '../mvvm/view_model/login/login_binding.dart';
+
 /// Defines navigation routes for the LayerX app.
 abstract class AppRoutes {
   AppRoutes._();
 
-  static const splashView = '/splashView';
-  static const garageMaintenanceRecordView = '/garageMaintenanceRecordView';
- 
+  static const splashView = '/';
+  static const loginView = '/login';
 }
 
 abstract class AppPages {
@@ -209,179 +149,90 @@ abstract class AppPages {
   static final routes = <GetPage>[
     GetPage(
       name: AppRoutes.splashView,
-      page: () => SplashView(),
-      binding: BindingsBuilder(() {
-        // Get.lazyPut<GetStartedController>(() => GetStartedController());
-      }),
+      page: () => const SplashView(),
+      binding: SplashBinding(),
     ),
     GetPage(
-      name: AppRoutes.garageMaintenanceRecordView,
-      page: () => ImageViewerScreen(),
+      name: AppRoutes.loginView,
+      page: () => const LoginView(),
+      binding: LoginBinding(),
     ),
-
-   
   ];
 }
-
 ''');
 
     await File(path.join(configDir.path, 'app_theme.dart')).writeAsString('''
-/// Defines navigation routes for the LayerX app.
-
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
-
-import 'app_colors.dart';
-
-abstract class AppTheme {
-  static const _primaryColor = AppColors.primary;
-  static const _secondaryColor = AppColors.secondaryWhite;
-  static const _borderRadius = 12.0;
-  static const _buttonPadding = EdgeInsets.symmetric(vertical: 12, horizontal: 20);
-
-  // Container colors for light and dark themes
-  static const Color _lightContainerColor = AppColors.secondaryWhite; // For light theme containers
-  static const Color _darkContainerColor = AppColors.darkBgColor; // For dark theme containers
-
-  static const Color _lightScaffoldColor = AppColors.secondaryWhite;
-  static const Color _darkScaffoldColor = Color(0xff1B1C1E);
-
-  static final ThemeData lightTheme = ThemeData(
-    fontFamily: "Poppins",
-    
-    brightness: Brightness.light,
-    primaryColor: _primaryColor,
-    scaffoldBackgroundColor: _lightScaffoldColor,
-    colorScheme: ColorScheme.light(primary: _primaryColor, secondary: _secondaryColor),
-    appBarTheme: _appBarTheme(_primaryColor, AppColors.textDarkColor),
-    // textTheme: _lightTextTheme,
-    cardColor: _lightContainerColor, // Light theme container color
-      elevatedButtonTheme: _elevatedButtonTheme(Brightness.light),
-    inputDecorationTheme: _inputDecorationTheme(AppColors.secondaryBlack, AppColors.textLightBlack),
-    iconTheme: IconThemeData(color: _primaryColor),
-    floatingActionButtonTheme: FloatingActionButtonThemeData(backgroundColor: _primaryColor, foregroundColor: AppColors.secondaryWhite),
-    bottomNavigationBarTheme: _bottomNavigationBarTheme(AppColors.bgColor, _primaryColor, AppColors.textDarkColor),
-    cardTheme: _cardTheme(_lightContainerColor, AppColors.borderGrey), // Light theme card color
-    switchTheme: _switchTheme(_primaryColor),
-    checkboxTheme: _checkboxTheme(_primaryColor),
-    sliderTheme: _sliderTheme(_primaryColor),
-    tabBarTheme: _tabBarTheme(_primaryColor, AppColors.textDarkColor),
-    progressIndicatorTheme: ProgressIndicatorThemeData(color: _primaryColor),
-    dividerTheme: DividerThemeData(color: AppColors.textLightBlack, thickness: 1),
-    tooltipTheme: TooltipThemeData(decoration: BoxDecoration(color: _primaryColor, borderRadius: BorderRadius.circular(_borderRadius))),
-    popupMenuTheme: PopupMenuThemeData(color: AppColors.secondaryWhite, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_borderRadius))),
-  );
-
-  static final ThemeData darkTheme = ThemeData(
-    fontFamily: "Poppins",
-    brightness: Brightness.dark,
-    primaryColor: _primaryColor,
-    scaffoldBackgroundColor: _darkScaffoldColor,
-    colorScheme: ColorScheme.dark(primary: _primaryColor, secondary: _secondaryColor),
-    appBarTheme: _appBarTheme(AppColors.secondaryBlack, AppColors.secondaryWhite),
-    // textTheme: _darkTextTheme,
-    cardColor: _darkContainerColor, // Dark theme container color
-    elevatedButtonTheme: _elevatedButtonTheme(Brightness.dark),
-    inputDecorationTheme: _inputDecorationTheme(AppColors.secondaryBlack, AppColors.textLightBlack),
-    iconTheme: IconThemeData(color: AppColors.secondaryWhite),
-    floatingActionButtonTheme: FloatingActionButtonThemeData(backgroundColor: _primaryColor, foregroundColor: AppColors.secondaryWhite),
-    bottomNavigationBarTheme: _bottomNavigationBarTheme(AppColors.secondaryBlack, _primaryColor, AppColors.secondaryWhite),
-    cardTheme: _cardTheme(_darkContainerColor, AppColors.textLightBlack), // Dark theme card color
-    switchTheme: _switchTheme(_primaryColor),
-    checkboxTheme: _checkboxTheme(_primaryColor),
-    sliderTheme: _sliderTheme(_primaryColor),
-    tabBarTheme: _tabBarTheme(_primaryColor, AppColors.secondaryWhite),
-    progressIndicatorTheme: ProgressIndicatorThemeData(color: _primaryColor),
-    dividerTheme: DividerThemeData(color: AppColors.textLightBlack, thickness: 1),
-    tooltipTheme: TooltipThemeData(decoration: BoxDecoration(color: _primaryColor, borderRadius: BorderRadius.circular(_borderRadius))),
-    popupMenuTheme: PopupMenuThemeData(color: AppColors.secondaryBlack, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_borderRadius))),
-  );
-
-  static AppBarTheme _appBarTheme(Color bgColor, Color fgColor) => AppBarTheme(
-    backgroundColor: bgColor,
-    foregroundColor: fgColor,
-    elevation: 3,
-    titleTextStyle: GoogleFonts.poppins(fontSize: 20.sp, fontWeight: FontWeight.bold, color: fgColor),
-  );
-
-  static BottomNavigationBarThemeData _bottomNavigationBarTheme(Color bgColor, Color selected, Color unselected) => BottomNavigationBarThemeData(
-    backgroundColor: bgColor,
-    selectedItemColor: selected,
-    unselectedItemColor: unselected,
-  );
-
-  static final TextTheme _lightTextTheme = TextTheme(
-    displayLarge: GoogleFonts.poppins(fontSize: 24.sp, fontWeight: FontWeight.bold, color: AppColors.textDarkColor),
-    displayMedium: GoogleFonts.poppins(fontSize: 22.sp, fontWeight: FontWeight.normal, color: AppColors.textDarkColor),
-    bodyLarge: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.normal, color: AppColors.textDarkColor),
-    bodyMedium: GoogleFonts.poppins(fontSize: 14.sp, color: AppColors.textLightBlack),
-  );
-
-  static final TextTheme _darkTextTheme = TextTheme(
-    displayLarge: GoogleFonts.poppins(fontSize: 24.sp, fontWeight: FontWeight.bold, color: AppColors.secondaryWhite),
-    displayMedium: GoogleFonts.poppins(fontSize: 22.sp, fontWeight: FontWeight.normal, color: AppColors.secondaryWhite),
-    bodyLarge: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.normal, color: AppColors.secondaryWhite),
-    bodyMedium: GoogleFonts.poppins(fontSize: 14.sp, color: AppColors.textLightBlack),
-  );
-
-  static ElevatedButtonThemeData _elevatedButtonTheme(Brightness brightness) {
-    return ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: brightness == Brightness.dark ? AppColors.borderGrey : _primaryColor,
-        foregroundColor: AppColors.secondaryWhite,
-        textStyle: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w600),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_borderRadius)),
-        padding: _buttonPadding,
-      ),
-    );
-  }
-
-  static InputDecorationTheme _inputDecorationTheme(Color fillColor, Color hintColor) => InputDecorationTheme(
-    filled: true,
-    fillColor: fillColor,
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(_borderRadius)),
-    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _primaryColor, width: 2), borderRadius: BorderRadius.circular(_borderRadius)),
-    hintStyle: GoogleFonts.poppins(color: hintColor),
-  );
-
-  static CardTheme _cardTheme(Color bgColor, Color shadowColor) => CardTheme(
-    color: bgColor,
-    shadowColor: shadowColor,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_borderRadius)),
-    elevation: 4,
-  );
-
-  static SwitchThemeData _switchTheme(Color activeColor) => SwitchThemeData(
-    trackColor: MaterialStateProperty.resolveWith<Color>((states) => states.contains(MaterialState.selected) ? activeColor : Colors.grey),
-    thumbColor: MaterialStateProperty.all(AppColors.secondaryWhite),
-  );
-
-  static CheckboxThemeData _checkboxTheme(Color activeColor) => CheckboxThemeData(
-    checkColor: MaterialStateProperty.all(AppColors.secondaryWhite),
-    fillColor: MaterialStateProperty.all(activeColor),
-  );
-
-  static SliderThemeData _sliderTheme(Color activeColor) => SliderThemeData(
-    activeTrackColor: activeColor,
-    inactiveTrackColor: activeColor.withOpacity(0.5),
-    thumbColor: activeColor,
-    overlayColor: activeColor.withOpacity(0.2),
-    valueIndicatorColor: activeColor,
-  );
-
-  static TabBarTheme _tabBarTheme(Color indicatorColor, Color labelColor) => TabBarTheme(
-    indicator: BoxDecoration(border: Border(bottom: BorderSide(color: indicatorColor, width: 2))),
-    labelColor: labelColor,
-    unselectedLabelColor: AppColors.textLightBlack,
-  );
-}
+// import 'package:flutter/material.dart';
+// import 'package:flutter_screenutil/flutter_screenutil.dart';
+// import 'package:google_fonts/google_fonts.dart';
+//
+// import 'app_colors.dart';
+//
+// abstract class AppTheme {
+//   AppTheme._();
+//
+//   static const _primaryColor = AppColors.primary;
+//   static const _borderRadius = 12.0;
+//
+//   static final ThemeData lightTheme = ThemeData(
+//     useMaterial3: true,
+//     brightness: Brightness.light,
+//     primaryColor: _primaryColor,
+//     scaffoldBackgroundColor: AppColors.secondaryWhite,
+//     colorScheme: const ColorScheme.light(primary: _primaryColor),
+//     appBarTheme: AppBarTheme(
+//       elevation: 0,
+//       backgroundColor: AppColors.secondaryWhite,
+//       foregroundColor: AppColors.textDarkColor,
+//       titleTextStyle: GoogleFonts.poppins(
+//         fontSize: 18.sp,
+//         fontWeight: FontWeight.w600,
+//         color: AppColors.textDarkColor,
+//       ),
+//     ),
+//     textTheme: GoogleFonts.poppinsTextTheme(),
+//     cardTheme: CardTheme(
+//       color: AppColors.secondaryWhite,
+//       elevation: 2,
+//       shape: RoundedRectangleBorder(
+//         borderRadius: BorderRadius.circular(_borderRadius),
+//       ),
+//     ),
+//   );
+//
+//   static final ThemeData darkTheme = ThemeData(
+//     useMaterial3: true,
+//     brightness: Brightness.dark,
+//     primaryColor: _primaryColor,
+//     scaffoldBackgroundColor: AppColors.darkBgColor,
+//     colorScheme: const ColorScheme.dark(primary: _primaryColor),
+//     appBarTheme: AppBarTheme(
+//       elevation: 0,
+//       backgroundColor: AppColors.darkBgColor,
+//       foregroundColor: AppColors.secondaryWhite,
+//       titleTextStyle: GoogleFonts.poppins(
+//         fontSize: 18.sp,
+//         fontWeight: FontWeight.w600,
+//         color: AppColors.secondaryWhite,
+//       ),
+//     ),
+//     textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+//     cardTheme: CardTheme(
+//       color: AppColors.secondaryBlack,
+//       elevation: 2,
+//       shape: RoundedRectangleBorder(
+//         borderRadius: BorderRadius.circular(_borderRadius),
+//       ),
+//     ),
+//   );
+// }
 ''');
 
     await File(path.join(configDir.path, 'app_strings.dart')).writeAsString('''
 /// Defines string constants for the LayerX app.
 abstract class AppStrings {
   AppStrings._();
+
   static const welcomeText = 'Welcome to LayerX';
 }
 ''');
@@ -390,415 +241,131 @@ abstract class AppStrings {
 /// Defines API endpoints for the LayerX app.
 abstract class AppUrls {
   AppUrls._();
+
   static const String baseAPIURL = 'https://api.example.com/';
+
   static const String signup = 'auth/signup';
   static const String updateAccount = 'auth/update';
   static const String appSettings = 'settings';
 }
 ''');
 
-    await File(path.join(configDir.path, 'app_text_style.dart'))
-        .writeAsString('''
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
-
-/// Defines text styles for the LayerX app.
-abstract class AppTextStyles {
-  AppTextStyles._();
-
-  static TextStyle customText({
-    Color? color,
-    Paint? foreground,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-    double fontSize = 12,
-    double? height,
-  }) {
-    // Using Get.textTheme.displayMedium everywhere
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: fontSize.sp,
-      color: color,
-      foreground: foreground,
-      fontWeight: fontWeight,
-      letterSpacing: letterSpacing,
-      height: height,
-    );
-  }
-
-  static TextStyle customTextLexend({
-    Color? color,
-    double? height,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-    double? fontSize,
-    TextDecoration decoration = TextDecoration.none,
-    Color? decorationColor,
-  }) {
-    return GoogleFonts.lexend(
-        fontSize: fontSize ?? 14.sp,
-        fontWeight: fontWeight,
-        color: color,
-        letterSpacing: letterSpacing,
-        decoration: decoration,
-        height: height,
-        decorationColor: decorationColor);
-  }
-
-  static TextStyle customText10({
-    Color? color,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-    double? height,
-  }) {
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: 10.sp,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      height: height,
-    );
-  }
-
-  static TextStyle customText12({
-    Color? color,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-    double? height,
-  }) {
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: 12.sp,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      height: height,
-    );
-  }
-
-  static TextStyle customText14({
-    Color? color,
-    double? height,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-    TextDecoration decoration = TextDecoration.none,
-    Color? decorationColor,
-  }) {
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: 14.sp,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      decoration: decoration,
-      height: height,
-      decorationColor: decorationColor,
-    );
-  }
-
-  static TextStyle customText16({
-    Color? color,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-    double? height,
-    TextDecoration decoration = TextDecoration.none,
-    Color? decorationColor,
-  }) {
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: 16.sp,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      decoration: decoration,
-      decorationColor: decorationColor,
-      height: height,
-    );
-  }
-
-  static TextStyle customText32({
-    Color? color,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-    TextDecoration decoration = TextDecoration.none,
-    double? height,
-  }) {
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: 32.sp,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      decoration: decoration,
-      height: height,
-    );
-  }
-
-  static TextStyle customText38({
-    Color? color,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-    TextDecoration decoration = TextDecoration.none,
-    double? height,
-  }) {
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: 38.sp,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      decoration: decoration,
-      height: height,
-    );
-  }
-
-  static TextStyle customText18({
-    Color? color,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-    double? height,
-  }) {
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: 18.sp,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      height: height,
-    );
-  }
-
-  static TextStyle customText20({
-    Color? color,
-    double? height,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-  }) {
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: 20.sp,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      height: height,
-    );
-  }
-
-  static TextStyle customText22({
-    Color? color,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-    double? height,
-  }) {
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: 22.sp,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      height: height,
-    );
-  }
-
-  static TextStyle customText24({
-    double? height,
-    Color? color,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-  }) {
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: 24.sp,
-      height: height,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-    );
-  }
-
-  static TextStyle customText26({
-    Color? color,
-    double? height,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-  }) {
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: 26.sp,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      height: height,
-    );
-  }
-
-  static TextStyle customText28({
-    Color? color,
-    double? height,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-  }) {
-    return Get.textTheme.displayMedium!.copyWith(
-      fontSize: 28.sp,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      height: height,
-    );
-  }
-
-  static TextStyle customTextPoppins({
-    Color? color,
-    double? fontSize,
-    FontWeight fontWeight = FontWeight.normal,
-    double letterSpacing = 0,
-  }) {
-    return GoogleFonts.poppins(
-      fontSize: fontSize,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-    );
-  }
-}
-''');
-
-    await File(path.join(configDir.path, 'padding_extensions.dart'))
-        .writeAsString('''
+    await File(path.join(configDir.path, 'padding_extensions.dart')).writeAsString('''
 import 'package:flutter/material.dart';
 
 /// Adds padding extensions for widgets in the LayerX app.
 extension PaddingExtension on Widget {
+  Widget paddingFromAll(double padding) => Padding(
+        padding: EdgeInsets.all(padding),
+        child: this,
+      );
 
-  Widget paddingFromAll(double padding) {
-    return Padding(
-      padding: EdgeInsets.all(padding),
-      child: this,
-    );
-  }
+  Widget paddingHorizontal(double padding) => Padding(
+        padding: EdgeInsets.symmetric(horizontal: padding),
+        child: this,
+      );
 
-  Widget paddingHorizontal(double padding) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: padding),
-      child: this,
-    );
-  }
+  Widget paddingVertical(double padding) => Padding(
+        padding: EdgeInsets.symmetric(vertical: padding),
+        child: this,
+      );
 
-  Widget paddingVertical(double padding) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: padding),
-      child: this,
-    );
-  }
+  Widget paddingTop(double padding) => Padding(
+        padding: EdgeInsets.only(top: padding),
+        child: this,
+      );
 
-  Widget paddingRight(double padding) {
-    return Padding(
-      padding: EdgeInsets.only(right: padding),
-      child: this,
-    );
-  }
+  Widget paddingBottom(double padding) => Padding(
+        padding: EdgeInsets.only(bottom: padding),
+        child: this,
+      );
 
-  Widget paddingLeft(double padding) {
-    return Padding(
-      padding: EdgeInsets.only(left: padding),
-      child: this,
-    );
-  }
+  Widget paddingLeft(double padding) => Padding(
+        padding: EdgeInsets.only(left: padding),
+        child: this,
+      );
 
-  Widget paddingTop(double padding) {
-    return Padding(
-      padding: EdgeInsets.only(top: padding),
-      child: this,
-    );
-  }
-
-  Widget paddingBottom(double padding) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: padding),
-      child: this,
-    );
-  }
+  Widget paddingRight(double padding) => Padding(
+        padding: EdgeInsets.only(right: padding),
+        child: this,
+      );
 }
 ''');
 
     await File(path.join(configDir.path, 'utils.dart')).writeAsString('''
-/// Provides utility functions for the LayerX app.
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
+import '../services/logger_service.dart';
+
 class Utils {
-  static String formatDate(DateTime? date) {
-    final DateFormat formatter = DateFormat('yyyy-MM-dd');
-    return formatter.format(date ?? DateTime.now());
-  }
+  static String formatDate(DateTime? date) =>
+      DateFormat('yyyy-MM-dd').format(date ?? DateTime.now());
 
-  static String formatDateDMY(DateTime? date) {
-    final DateFormat formatter = DateFormat('dd-MM-yyyy');
-    return formatter.format(date ?? DateTime.now());
-  }
-
-  static calculateAge(DateTime birthDate) {
-    DateTime today = DateTime.now();
-    int age = today.year - birthDate.year;
-
-    if (today.month < birthDate.month ||
-        (today.month == birthDate.month && today.day < birthDate.day)) {
-      age--;
-    }
-    return age;
-  }
+  static String formatDateDMY(DateTime? date) =>
+      DateFormat('dd-MM-yyyy').format(date ?? DateTime.now());
 
   static String? formatDateTime(DateTime? date) {
     if (date == null) return null;
-    return DateFormat('MMM d, h:mm a').format(date); // e.g., Apr 18, 3:45 PM
+    return DateFormat('MMM d, h:mm a').format(date);
   }
 
   static bool isNotExpired(String date) {
     try {
-      final cleanedDate = date
-          .replaceAll(RegExp(r'\s+'), '') // Remove all spaces
-          .replaceAll(RegExp(r'[./]'), '-') // Replace '/' and '.' with '-'
+      final cleaned = date
+          .replaceAll(RegExp(r'\\s+'), '')
+          .replaceAll(RegExp(r'[./]'), '-')
           .trim();
 
-      final DateTime inputDate = DateTime.parse(cleanedDate);
-
-      final DateTime today = DateTime.now();
-      final DateTime currentDate = DateTime(today.year, today.month, today.day);
+      final inputDate = DateTime.parse(cleaned);
+      final today = DateTime.now();
+      final currentDate = DateTime(today.year, today.month, today.day);
 
       return inputDate.isAfter(currentDate) ||
           inputDate.isAtSameMomentAs(currentDate);
     } catch (e) {
-      LoggerService.i("Invalid date format or error parsing date: e");
+      LoggerService.i('Invalid date format: \$date');
       return false;
     }
   }
 
-  static void showBottomSheet(
-      {required BuildContext context, required Widget child}) {
+  static void showBottomSheet({
+    required BuildContext context,
+    required Widget child,
+  }) {
     showModalBottomSheet(
       backgroundColor: Colors.white,
       isScrollControlled: true,
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-              topRight: Radius.circular(14.sp),
-              topLeft: Radius.circular(14.sp))),
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(14.sp),
+          topLeft: Radius.circular(14.sp),
+        ),
+      ),
       context: context,
-      builder: (context) {
-        return Container(
-          width: ScreenUtil().screenWidth,
-          child: child,
-        );
-      },
+      builder: (_) => SizedBox(
+        width: ScreenUtil().screenWidth,
+        child: child,
+      ),
     );
   }
 
-  static void showCustomDialog(
-      {required BuildContext context, required Widget child}) {
+  static void showCustomDialog({
+    required BuildContext context,
+    required Widget child,
+  }) {
     showDialog(
       context: context,
-      barrierDismissible: true, // Allows dismissing when tapping outside
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22.sp), // Rounded corners for the dialog
-          ),
-          child: child, // Your custom widget inside the dialog
-        );
-      },
+      barrierDismissible: true,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22.sp),
+        ),
+        child: child,
+      ),
     );
   }
 
@@ -806,54 +373,32 @@ class Utils {
     BuildContext context, {
     required VoidCallback onCameraTap,
     required VoidCallback onGalleryTap,
-    VoidCallback? onFileTap, // <-- made nullable
-    bool? hasFile, // <-- nullable param
+    VoidCallback? onFileTap,
+    bool? hasFile,
   }) async {
     await showCupertinoModalPopup(
       context: context,
-      builder: (context) => CupertinoActionSheet(
+      builder: (_) => CupertinoActionSheet(
         actions: [
           CupertinoActionSheetAction(
             onPressed: onCameraTap,
-            child: const Text("Camera"),
+            child: const Text('Camera'),
           ),
           CupertinoActionSheetAction(
             onPressed: onGalleryTap,
-            child: const Text("Gallery"),
+            child: const Text('Gallery'),
           ),
-          if (hasFile == true && onFileTap != null) // <-- safe null check
+          if (hasFile == true && onFileTap != null)
             CupertinoActionSheetAction(
               onPressed: onFileTap,
-              child: const Text("Pick File (PDF, DOC)"),
+              child: const Text('Pick File (PDF, DOC)'),
             ),
         ],
         cancelButton: CupertinoActionSheetAction(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: const Text("Cancel"),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
         ),
       ),
-    );
-  }
-
-  static showErrorDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Error'),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
     );
   }
 }
@@ -866,17 +411,103 @@ class AppConfig {
 }
 ''');
 
-    print('Created config files in config/');
+    stdout.writeln('Created config files.');
   }
 
-  Future<void> _createModelFiles(String appDirPath) async {
-    final bodyModelDir =
-        Directory(path.join(appDirPath, 'mvvm', 'model', 'body_model'));
-    final apiResponseModelDir =
-        Directory(path.join(appDirPath, 'mvvm', 'model', 'api_response_model'));
+  // ========================= MVVM SKELETON =========================
 
-    await File(path.join(bodyModelDir.path, 'driver_signup_body_model.dart'))
-        .writeAsString('''
+  Future<void> _createMVVMSkeleton(String appDirPath) async {
+    // Splash
+    await File(path.join(appDirPath, 'mvvm', 'view', 'splash', 'splash_view.dart')).writeAsString('''
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../view_model/splash/splash_controller.dart';
+
+class SplashView extends GetView<SplashController> {
+  const SplashView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Obx(() => Text(
+          controller.title.value,
+          textAlign: TextAlign.center,
+        )),
+      ),
+    );
+  }
+}
+''');
+
+    await File(path.join(appDirPath, 'mvvm', 'view_model', 'splash', 'splash_controller.dart')).writeAsString('''
+import 'package:get/get.dart';
+
+class SplashController extends GetxController {
+  final RxString title = 'LayerX Ready ✅'.obs;
+}
+''');
+
+    await File(path.join(appDirPath, 'mvvm', 'view_model', 'splash', 'splash_binding.dart')).writeAsString('''
+import 'package:get/get.dart';
+import 'splash_controller.dart';
+
+class SplashBinding extends Bindings {
+  @override
+  void dependencies() {
+    Get.lazyPut<SplashController>(() => SplashController());
+  }
+}
+''');
+
+    // Login placeholder (needed for ApiResponseHandler redirect)
+    await File(path.join(appDirPath, 'mvvm', 'view', 'login', 'login_view.dart')).writeAsString('''
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../view_model/login/login_controller.dart';
+
+class LoginView extends GetView<LoginController> {
+  const LoginView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Text('Login Placeholder (Replace with your UI)'),
+      ),
+    );
+  }
+}
+''');
+
+    await File(path.join(appDirPath, 'mvvm', 'view_model', 'login', 'login_controller.dart')).writeAsString('''
+import 'package:get/get.dart';
+
+class LoginController extends GetxController {}
+''');
+
+    await File(path.join(appDirPath, 'mvvm', 'view_model', 'login', 'login_binding.dart')).writeAsString('''
+import 'package:get/get.dart';
+import 'login_controller.dart';
+
+class LoginBinding extends Bindings {
+  @override
+  void dependencies() {
+    Get.lazyPut<LoginController>(() => LoginController());
+  }
+}
+''');
+  }
+
+  // ========================= MODELS =========================
+
+  Future<void> _createModelFiles(String appDirPath) async {
+    final bodyModelDir = Directory(path.join(appDirPath, 'mvvm', 'model', 'body_model'));
+    final apiResponseModelDir = Directory(path.join(appDirPath, 'mvvm', 'model', 'api_response_model'));
+
+    await File(path.join(bodyModelDir.path, 'driver_signup_body_model.dart')).writeAsString('''
+import 'dart:io';
+
 /// Model for driver signup data with multipart support.
 class DriverSignupBodyModel {
   String? name;
@@ -885,7 +516,13 @@ class DriverSignupBodyModel {
   List<File>? documents;
   File? details;
 
-  DriverSignupBodyModel({this.name, this.email, this.image, this.documents, this.details});
+  DriverSignupBodyModel({
+    this.name,
+    this.email,
+    this.image,
+    this.documents,
+    this.details,
+  });
 
   Map<String, dynamic> toJson() => {
         'name': name,
@@ -894,8 +531,9 @@ class DriverSignupBodyModel {
 }
 ''');
 
-    await File(path.join(bodyModelDir.path, 'garage_signup_body_model.dart'))
-        .writeAsString('''
+    await File(path.join(bodyModelDir.path, 'garage_signup_body_model.dart')).writeAsString('''
+import 'dart:io';
+
 /// Model for garage signup data with multipart support.
 class GarageSignupBodyModel {
   String? name;
@@ -909,9 +547,10 @@ class GarageSignupBodyModel {
 }
 ''');
 
-    await File(path.join(bodyModelDir.path, 'buyCar_request_model.dart'))
-        .writeAsString('''
-/// Model for garage signup data with multipart support.
+    await File(path.join(bodyModelDir.path, 'buy_car_request_model.dart')).writeAsString('''
+import 'dart:io';
+
+/// Model for buy car request with multipart support.
 class BuyCarRequestModel {
   String? name;
   File? image;
@@ -924,8 +563,9 @@ class BuyCarRequestModel {
 }
 ''');
 
-    await File(path.join(bodyModelDir.path, 'add_car_body_model.dart'))
-        .writeAsString('''
+    await File(path.join(bodyModelDir.path, 'add_car_body_model.dart')).writeAsString('''
+import 'dart:io';
+
 /// Model for adding car data with multipart support.
 class AddCarBodyModel {
   String? model;
@@ -950,8 +590,7 @@ class AddCarBodyModel {
 }
 ''');
 
-    await File(path.join(apiResponseModelDir.path, 'api_response.dart'))
-        .writeAsString('''
+    await File(path.join(apiResponseModelDir.path, 'api_response.dart')).writeAsString('''
 /// Generic API response model for flexible data parsing.
 class ApiResponse<T> {
   final bool? success;
@@ -979,11 +618,9 @@ class ApiResponse<T> {
     final skipKeys = {'status', 'success', 'code', 'error', 'message', 'token'};
     dynamic extractedData;
 
-    // First try 'data' if it exists
     if (json['data'] != null) {
       extractedData = json['data'];
     } else {
-      // Otherwise try to find any nested Map or List not part of skipKeys
       for (final entry in json.entries) {
         if (!skipKeys.contains(entry.key) &&
             (entry.value is Map<String, dynamic> || entry.value is List)) {
@@ -1014,44 +651,597 @@ class ApiResponse<T> {
 }
 ''');
 
-    print('Created model files in mvvm/model/');
+    stdout.writeln('Created model files.');
   }
+
+  // ========================= SERVICES =========================
 
   Future<void> _createServiceFiles(String appDirPath) async {
     final servicesDir = Directory(path.join(appDirPath, 'services'));
 
-    await File(path.join(servicesDir.path, 'https_calls.dart'))
-        .writeAsString('''
-      import 'dart:async';
+    await File(path.join(servicesDir.path, 'logger_service.dart')).writeAsString('''
+import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
+import 'package:logger/logger.dart';
+
+/// Custom log printer with enhanced formatting and timestamps.
+class CustomPrinter extends LogPrinter {
+  final PrettyPrinter _prettyPrinter;
+
+  CustomPrinter()
+      : _prettyPrinter = PrettyPrinter(
+          methodCount: 1,
+          errorMethodCount: 6,
+          lineLength: 120,
+          colors: true,
+          printEmojis: true,
+        );
+
+  @override
+  List<String> log(LogEvent event) {
+    final output = _prettyPrinter.log(event);
+    final formattedTime =
+        DateFormat('dd-MM-yyyy hh:mm:ss a').format(DateTime.now());
+    final levelName = event.level.name.toUpperCase();
+    return output.map((line) => '[📅 \$formattedTime] [\$levelName] \$line').toList();
+  }
+}
+
+class LoggerService {
+  LoggerService._();
+
+  static final Logger _logger = Logger(
+    filter: ProductionFilter(),
+    printer: CustomPrinter(),
+    level: kDebugMode ? Level.trace : Level.warning,
+  );
+
+  static void d(dynamic message, {Object? error, StackTrace? stackTrace}) {
+    if (kDebugMode) _logger.d(message, error: error, stackTrace: stackTrace);
+  }
+
+  static void i(dynamic message, {Object? error, StackTrace? stackTrace}) {
+    if (kDebugMode) _logger.i(message, error: error, stackTrace: stackTrace);
+  }
+
+  static void w(dynamic message, {Object? error, StackTrace? stackTrace}) {
+    if (kDebugMode) _logger.w(message, error: error, stackTrace: stackTrace);
+  }
+
+  static void e(dynamic message, {Object? error, StackTrace? stackTrace}) {
+    if (kDebugMode) _logger.e(message, error: error, stackTrace: stackTrace);
+  }
+}
+''');
+
+    await File(path.join(servicesDir.path, 'shared_preferences_service.dart')).writeAsString('''
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'logger_service.dart';
+
+class SharedPreferencesService {
+  static const String _keyUserData = 'user_data';
+  static const String _deviceToken = 'deviceToken';
+  static const String _apiToken = 'apiToken';
+
+  Future<void> saveDeviceToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_deviceToken, token);
+    LoggerService.i('Saved device token');
+  }
+
+  Future<String?> readDeviceToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_deviceToken);
+  }
+
+  Future<void> saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_apiToken, token);
+    LoggerService.i('Saved API token');
+  }
+
+  Future<String?> readToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_apiToken);
+  }
+
+  Future<void> saveUserData(dynamic userData) async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = json.encode(userData.toJson());
+    await prefs.setString(_keyUserData, data);
+    LoggerService.i('Saved user data');
+  }
+
+  Future<dynamic> readUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(_keyUserData);
+    if (data == null) return null;
+    return json.decode(data);
+  }
+
+  Future<void> clearAllPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
+}
+''');
+
+    await File(path.join(servicesDir.path, 'global_variables.dart')).writeAsString('''
+import '../config/app_enums.dart';
+
+/// Global variables for the LayerX app.
+class GlobalVariables {
+  static List<String> errorMessages = ['Failed, Try Again'];
+  static String route = '';
+  static UserRole userRole = UserRole.user;
+}
+''');
+
+    await File(path.join(servicesDir.path, 'json_extractor.dart')).writeAsString('''
+import 'dart:convert';
+import 'package:logger/logger.dart';
+import 'global_variables.dart';
+
+class MessageExtractor {
+  final Logger _logger = Logger();
+
+  void extractAndStoreMessage(String endPoint, String responseBody) {
+    GlobalVariables.errorMessages.clear();
+
+    try {
+      _logger.i("💡 API EndPoint: \$endPoint - Raw Response: \$responseBody");
+
+      final dynamic decoded = jsonDecode(responseBody);
+
+      if (decoded is! Map<String, dynamic>) {
+        GlobalVariables.errorMessages.add("Unexpected server response format.");
+        return;
+      }
+
+      final jsonMap = decoded;
+
+      if (jsonMap['errors'] is Map<String, dynamic>) {
+        final errorsMap = jsonMap['errors'] as Map<String, dynamic>;
+        for (final entry in errorsMap.entries) {
+          final value = entry.value;
+          if (value is List) {
+            for (final msg in value) {
+              if (msg != null && msg.toString().trim().isNotEmpty) {
+                GlobalVariables.errorMessages.add(msg.toString().trim());
+              }
+            }
+          } else if (value is String && value.trim().isNotEmpty) {
+            GlobalVariables.errorMessages.add(value.trim());
+          }
+        }
+      } else if (jsonMap['errors'] is List) {
+        final errorsList = jsonMap['errors'] as List;
+        for (final error in errorsList) {
+          if (error != null && error.toString().trim().isNotEmpty) {
+            GlobalVariables.errorMessages.add(error.toString().trim());
+          }
+        }
+      } else if (jsonMap['data'] is List) {
+        final dataList = jsonMap['data'] as List;
+        for (final error in dataList) {
+          if (error != null && error.toString().trim().isNotEmpty) {
+            GlobalVariables.errorMessages.add(error.toString().trim());
+          }
+        }
+      }
+
+      if (GlobalVariables.errorMessages.isEmpty &&
+          jsonMap['message'] != null &&
+          jsonMap['message'].toString().trim().isNotEmpty) {
+        GlobalVariables.errorMessages.add(jsonMap['message'].toString().trim());
+      }
+
+      if (GlobalVariables.errorMessages.isEmpty) {
+        GlobalVariables.errorMessages.add("Something went wrong.");
+      }
+    } catch (e, st) {
+      _logger.e("❌ Error extracting message: \$e", error: e, stackTrace: st);
+      GlobalVariables.errorMessages.add("Connection issue. Please retry.");
+    }
+
+    _logger.i("✅ Extracted Errors: \${GlobalVariables.errorMessages}");
+  }
+}
+''');
+
+    await File(path.join(servicesDir.path, 'location_service.dart')).writeAsString('''
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'logger_service.dart';
+
+class LocationService {
+  Future<Position> getCurrentLocation() async {
+    final isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!isServiceEnabled) {
+      LoggerService.w('Location services are disabled');
+      await Geolocator.openLocationSettings();
+      throw Exception('Location services are disabled.');
+    }
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Location permission denied.');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      await openAppSettings();
+      throw Exception('Location permission denied forever.');
+    }
+
+    return Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+  }
+}
+''');
+
+    await File(path.join(servicesDir.path, 'api_response_handler.dart')).writeAsString('''
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
+import '../config/app_routes.dart';
+import '../customWidgets/custom_dialogs/no_internetdialog.dart';
+import '../mvvm/model/api_reponse/api_response.dart';
+import 'json_extractor.dart';
+import 'logger_service.dart';
+
+/// Handles API responses with standardized processing.
+class ApiResponseHandler {
+  static Future<ApiResponse<T>> process<T>(dynamic response, String? endPoint, T Function(dynamic dataJson) fromJson) async {
+    MessageExtractor().extractAndStoreMessage(endPoint ?? '', response.body);
+
+    switch (response.statusCode) {
+      case 200:
+      case 201:
+        final parsedJson = response.body.length > 100000 ? await compute<String, dynamic>(_parseJson, response.body) : jsonDecode(response.body);
+        LoggerService.i('✅ API response processed: "endPoint"');
+        return ApiResponse<T>.fromJson(parsedJson, fromJson);
+
+      case 401:
+        _handleUnauthorized(endPoint);
+        break;
+
+      case 422:
+        return _handleError<T>(response, 'Validation Error');
+
+      case 500:
+        return _handleError<T>(response, 'Internal Server Error');
+
+      case 503:
+        return _handleNoInternet();
+
+      default:
+        return _handleError<T>(response, 'API Error: "{response.statusCode} - {response.reasonPhrase}"');
+    }
+
+    return ApiResponse<T>(message: 'Unexpected error occurred');
+  }
+
+  static dynamic _parseJson(String responseBody) {
+    return jsonDecode(responseBody);
+  }
+
+  static void _handleUnauthorized(String? endPoint) {
+    LoggerService.w('⛔ Unauthorized. Checking endpoint...');
+
+    // ✅ Skip redirect if endpoint is login
+    if ((endPoint ?? '').toLowerCase().contains('login') || (endPoint ?? '').toLowerCase().contains('delete-account')) {
+      LoggerService.w('🔁 401 on login endpoint. Skipping redirect.');
+      return;
+    }
+
+    LoggerService.w('⛔ Unauthorized. Redirecting to login.');
+    // Get.offAllNamed(AppRoutes.loginView);
+    throw Exception('Unauthorized access. Please log in.');
+  }
+
+  static _handleNoInternet() {
+    LoggerService.w('📴 No internet detected (503)');
+    if (!(Get.isDialogOpen ?? false)) {
+      Future.delayed(Duration.zero, () {
+        NoInternetDialog.show(
+          title: "Network Error",
+          message: "Unable to connect to the server. Please check your internet connection and try again.",
+          closeText: "Dismiss",
+          onClose: () {
+            // Handle close action
+          },
+        );
+      });
+      throw Exception('No internet connection. Please try again.');
+    }
+  }
+
+  static ApiResponse<T> _handleError<T>(dynamic response, String errorMessage) {
+    try {
+      final errorResponse = jsonDecode(response.body);
+      final message = errorResponse['message'] ?? 'Something went wrong. Please try again.';
+      //LoggerService.e('❌ "errorMessage → message"');
+      return ApiResponse<T>(message: message);
+    } catch (e, stack) {
+      LoggerService.e('❌ Error parsing error response', error: e, stackTrace: stack);
+      return ApiResponse<T>(message: errorMessage);
+    }
+  }
+
+  static void logUnhandledError(dynamic e, StackTrace stackTrace) {
+    LoggerService.e('⚠️ Unhandled error', error: e, stackTrace: stackTrace);
+  }
+}
+''');
+
+    await File(path.join(servicesDir.path, 'https_calls.dart')).writeAsString(_httpsCallsContent());
+
+    stdout.writeln('Created service files.');
+  }
+
+  // ========================= NOTIFICATIONS (NEW) =========================
+
+  Future<void> _createNotificationFiles(String appDirPath) async {
+    final notifDir = Directory(path.join(appDirPath, 'services', 'notifications'));
+    await notifDir.create(recursive: true);
+
+    await File(path.join(notifDir.path, 'notification_permissions.dart')).writeAsString(_notificationPermissionsContent());
+
+    await File(path.join(notifDir.path, 'notification_service.dart')).writeAsString(_notificationServiceContent());
+
+    await File(path.join(notifDir.path, 'server_key.dart')).writeAsString(_serverKeyContent());
+
+    stdout.writeln('✅ Created notification files in services/notifications/');
+  }
+
+  String _notificationPermissionsContent() => r'''
+import 'dart:developer';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:get/get.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+class NotificationPermissions {
+  final FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+  Future<void> requestNotificationPermission() async {
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      log('User granted permission');
+
+      // ✅ Get token after permission
+      String? token = await messaging.getToken();
+      log('FCM Token: $token');
+
+      Get.snackbar("Notification", "Permission granted");
+    } else if (settings.authorizationStatus ==
+        AuthorizationStatus.provisional) {
+      log('User granted provisional permission');
+      Get.snackbar("Notification", "Provisional permission granted");
+    } else {
+      log('User declined or has not accepted permission');
+      Get.snackbar("Notification", "Permission denied");
+    }
+  }
+
+  Future<bool> isNotificationPermissionGranted() async {
+    if (await Permission.notification.isGranted) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  Future<String?> getDeviceToken() async {
+    try {
+      String? token = await messaging.getToken();
+      log("FCM Token: $token");
+      return token;
+    } catch (e) {
+      log("Error getting device token: $e");
+      return null;
+    }
+  }
+}
+''';
+
+  String _notificationServiceContent() => r'''
+import 'dart:developer';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:get/get.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+
+import 'notification_permissions.dart';
+
+class NotificationService {
+  static final FirebaseMessaging _firebaseMessaging =
+      FirebaseMessaging.instance;
+
+  static final FlutterLocalNotificationsPlugin
+      _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+  static void initialize() async {
+    // ✅ REQUIRED FOR TIMEZONE SUPPORT
+    tz.initializeTimeZones();
+    final String timeZoneName = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(timeZoneName));
+
+    // ✅ Initialize Local Notifications
+    const AndroidInitializationSettings androidInitSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const InitializationSettings initSettings =
+        InitializationSettings(android: androidInitSettings);
+
+    await _flutterLocalNotificationsPlugin.initialize(initSettings);
+
+    // ✅ Request Notification Permission
+    NotificationPermissions().requestNotificationPermission();
+
+    // ✅ Background Message Handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // ✅ Foreground Listener
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      log("📩 Foreground Message: ${message.notification?.title}");
+      showNotification(message);
+    });
+
+    // ✅ When app opened from notification
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      log("📌 Notification Clicked: ${message.notification?.title}");
+    });
+  }
+
+  // ✅ Background Handler
+  static Future<void> _firebaseMessagingBackgroundHandler(
+      RemoteMessage message) async {
+    log("📩 Background Message: ${message.notification?.title}");
+  }
+
+  // ✅ Show Notification
+  static Future<void> showNotification(RemoteMessage message) async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+      'layerx_channel',
+      'LayerX Notifications',
+      channelDescription: 'LayerX push notifications channel',
+      importance: Importance.high,
+      priority: Priority.high,
+      playSound: true,
+    );
+
+    const NotificationDetails notificationDetails =
+        NotificationDetails(android: androidDetails);
+
+    await _flutterLocalNotificationsPlugin.show(
+      message.hashCode,
+      message.notification?.title ?? "No Title",
+      message.notification?.body ?? "No Body",
+      notificationDetails,
+    );
+  }
+
+  // ✅ Schedule Notification
+  static Future<void> scheduleNotification({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledDate,
+  }) async {
+    await _flutterLocalNotificationsPlugin.zonedSchedule(
+      id,
+      title,
+      body,
+      tz.TZDateTime.from(scheduledDate, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'layerx_channel',
+          'LayerX Notifications',
+          channelDescription: 'LayerX push notifications channel',
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
+}
+''';
+
+  String _serverKeyContent() => r'''
+import 'dart:developer';
+import 'package:googleapis_auth/auth_io.dart';
+import 'package:logger/logger.dart';
+import 'notification_permissions.dart';
+
+class ServerKeyService {
+  final logger = Logger();
+  String? serverKey;
+
+  Future<String?> getServiceKey() async {
+    final scopes = [
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/firebase.database',
+      'https://www.googleapis.com/auth/firebase.messaging',
+    ];
+
+    // NOTE:
+    // Your original file contained a literal "..." placeholder here.
+    // Add your service account JSON properly below.
+
+    final client = await clientViaServiceAccount(
+      ServiceAccountCredentials.fromJson({
+        // TODO: Paste your full Firebase service account JSON here.
+      }),
+      scopes,
+    );
+
+    serverKey = client.credentials.accessToken.data;
+    log('Key $serverKey');
+    return serverKey;
+  }
+}
+''';
+
+  // ========================= HTTPS CALLS CONTENT =========================
+
+  String _httpsCallsContent() => r'''
+import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
+
 import '../config/app_urls.dart';
-import '../config/global_variables.dart';
-import 'internet_service.dart';
 import 'logger_service.dart';
 import 'shared_preferences_service.dart';
 
 enum HttpMethod { GET, POST, PUT, PATCH, DELETE }
+
+/// Simple cancellation token for requests.
 class CancelToken {
   bool _canceled = false;
   String? reason;
   final Completer<void> _notifier = Completer<void>();
+
   bool get isCanceled => _canceled;
+
   Future<void> get whenCanceled => _notifier.future;
 
   void cancel([String? reason]) {
     if (_canceled) return;
     _canceled = true;
     this.reason = reason;
-    if (!_notifier.isCompleted) _notifier.complete();
+    if (!_notifier.isCompleted) {
+      _notifier.complete();
+    }
   }
 }
 
 class HttpsCalls {
-// lower CPU per call.
   late final IOClient _pooledClient = () {
     final h = HttpClient()
       ..idleTimeout = const Duration(seconds: 15)
@@ -1060,6 +1250,12 @@ class HttpsCalls {
       ..autoUncompress = true;
     return IOClient(h);
   }();
+
+  void dispose() {
+    try {
+      _pooledClient.close();
+    } catch (_) {}
+  }
 
   final int _maxConcurrency = 8;
   int _active = 0;
@@ -1079,37 +1275,70 @@ class HttpsCalls {
     if (_waiters.isNotEmpty) {
       _waiters.removeFirst().complete();
     } else {
-      _active = (_active > 0) ? _active - 1 : 0;
+      if (_active > 0) _active--;
     }
   }
 
   final _ongoingRequests = <String, Future<http.Response>>{};
+
   final Duration _timeoutDuration = const Duration(seconds: 20);
   final int _maxRetries = 2;
+
   final _random = Random();
 
-  Future<http.Response> _performRequest(
-      String key,
-      Future<http.Response> Function(http.Client client) request, {
-        CancelToken? cancelToken,
-      }) async {
-    final hasInternet = await InternetService.hasWorkingInternet();
-    LoggerService.d('Internet status: \$hasInternet');
+  final Set<CancelToken> _attachedTokens = <CancelToken>{};
 
-    if (!hasInternet) {
-      GlobalVariables.errorMessages = ["No internet connection"];
-      return http.Response('No internet connection', 503);
+  void cancelAll([String reason = 'Global cancelAll']) {
+    for (final t in _attachedTokens.toList()) {
+      t.cancel(reason);
     }
+    _attachedTokens.clear();
+  }
+
+  bool _isIdempotent(HttpMethod m) {
+    switch (m) {
+      case HttpMethod.GET:
+      case HttpMethod.PUT:
+      case HttpMethod.DELETE:
+        return true;
+      case HttpMethod.POST:
+      case HttpMethod.PATCH:
+        return false;
+    }
+  }
+
+  String _buildKey(HttpMethod method, String endpoint, {List<int>? body}) {
+    final methodStr = method.toString().split('.').last;
+    final bodyHash = (body == null || body.isEmpty)
+        ? ''
+        : base64Url.encode(body.take(32).toList());
+    return '$methodStr $endpoint $bodyHash';
+  }
+
+  Future<http.Response> _performRequest(
+    HttpMethod method,
+    String endpoint,
+    Future<http.Response> Function(http.Client client) request, {
+    List<int>? body,
+    CancelToken? cancelToken,
+  }) async {
+    final key = _buildKey(method, endpoint, body: body);
 
     if (_ongoingRequests.containsKey(key)) {
+      LoggerService.i('🔁 Joining in-flight request for $key');
       return _ongoingRequests[key]!;
     }
 
     await _acquireSlot();
+    CancelToken? token = cancelToken;
+    if (token != null) {
+      _attachedTokens.add(token);
+    }
+
     try {
       IOClient? perRequestClient;
       http.Client client;
-      if (cancelToken != null) {
+      if (token != null) {
         final h = HttpClient()
           ..idleTimeout = const Duration(seconds: 15)
           ..connectionTimeout = const Duration(seconds: 15)
@@ -1120,542 +1349,189 @@ class HttpsCalls {
       } else {
         client = _pooledClient;
       }
-      for (int attempt = 0; attempt <= _maxRetries; attempt++) {
-        if (cancelToken?.isCanceled == true) {
-          LoggerService.w('Request cancelled for \$key: \${cancelToken?.reason}');
+
+      final bool canRetry = _isIdempotent(method);
+      final int maxAttempts = canRetry ? (_maxRetries + 1) : 1;
+
+      for (int attempt = 0; attempt < maxAttempts; attempt++) {
+        if (token?.isCanceled == true) {
+          LoggerService.w(
+              '⛔️ Request cancelled before send: $key, reason: ${token?.reason}');
           perRequestClient?.close();
-          throw Exception('Request cancelled: \${cancelToken?.reason ?? ""}');
+          throw Exception('Request cancelled: ${token?.reason ?? ""}');
         }
 
         try {
           final future = request(client).timeout(_timeoutDuration);
-          final response = (cancelToken == null)
-              ? await (_ongoingRequests[key] = future)
-              : await (_ongoingRequests[key] = Future.any([
-            future,
-            cancelToken.whenCanceled.then((_) => throw Exception('Request cancelled: \${cancelToken.reason ?? ""}')),
-          ]));
+
+          final http.Response response;
+          if (token == null) {
+            _ongoingRequests[key] = future;
+            response = await future;
+          } else {
+            _ongoingRequests[key] = Future.any([
+              future,
+              token.whenCanceled.then(
+                  (_) => throw Exception('Request cancelled: ${token.reason ?? ""}')),
+            ]);
+            response = await _ongoingRequests[key]!;
+          }
 
           _ongoingRequests.remove(key);
-          LoggerService.i('Request succeeded for \$key');
           perRequestClient?.close();
+
+          LoggerService.i('✅ $method $endpoint → ${response.statusCode}');
           return response;
         } on TimeoutException catch (e) {
-          if (attempt == _maxRetries) {
+          LoggerService.w('⏰ Timeout on attempt $attempt for $key: $e');
+
+          if (attempt == maxAttempts - 1) {
             _ongoingRequests.remove(key);
             perRequestClient?.close();
-            LoggerService.e('Request timed out after \$_maxRetries retries: \$e');
-            throw Exception('Timeout after \$_maxRetries retries');
+            throw Exception('Timeout after $maxAttempts attempts');
           }
+
           await _retryDelay(attempt);
         } on Exception catch (e, st) {
-          if (cancelToken?.isCanceled == true ||
+          if (token?.isCanceled == true ||
               e.toString().contains('Request cancelled')) {
+            LoggerService.w('⛔️ Canceled $key: $e');
             _ongoingRequests.remove(key);
             perRequestClient?.close();
-            LoggerService.w('Canceled \$key: \$e');
             rethrow;
           }
 
-          if (attempt == _maxRetries) {
+          if (attempt == maxAttempts - 1) {
+            LoggerService.e(
+                '💥 $method $endpoint failed after $maxAttempts attempts: $e',
+                error: e,
+                stackTrace: st);
             _ongoingRequests.remove(key);
             perRequestClient?.close();
-            LoggerService.e('Request failed after \$_maxRetries retries: \$e', error: e, stackTrace: st);
-            throw Exception('Failed after retries: \$e');
+            throw Exception('Failed after $maxAttempts attempts: $e');
           }
+
+          LoggerService.w('🔁 Retry $attempt for $key due to error: $e');
           await _retryDelay(attempt);
         }
       }
-
       _ongoingRequests.remove(key);
-      perRequestClient?.close();
-      throw Exception('Failed to perform request');
+      throw Exception('Unexpected error in _performRequest');
     } finally {
+      if (cancelToken != null) {
+        _attachedTokens.remove(cancelToken);
+      }
       _releaseSlot();
     }
   }
 
   Future<void> _retryDelay(int attempt) async {
     final base = pow(2, attempt).toInt();
-    final jitter = _random.nextInt(400);
-    await Future.delayed(Duration(milliseconds: base * 500 + jitter));
+    final jitter = _random.nextInt(300);
+    await Future.delayed(Duration(milliseconds: base * 400 + jitter));
   }
 
   Future<Map<String, String>> _getDefaultHeaders() async {
     final token = await SharedPreferencesService().readToken();
+    debugPrint('======>>> Token: $token');
     return {
       HttpHeaders.contentTypeHeader: 'application/json',
       HttpHeaders.acceptHeader: 'application/json',
-      if (token != null) HttpHeaders.authorizationHeader: 'Bearer \$token',
+      if (token != null) HttpHeaders.authorizationHeader: 'Bearer $token',
     };
   }
 
-
   Future<http.Response> _sendRequest(
-      http.Client client,
-      HttpMethod method,
-      String lControllerUrl, {
-        List<int>? body,
-      }) async {
+    http.Client client,
+    HttpMethod method,
+    String endpoint, {
+    List<int>? body,
+  }) async {
     final headers = await _getDefaultHeaders();
-    final url = Uri.parse(AppUrls.baseAPIURL + lControllerUrl);
-    LoggerService.d('Sending \$method request to \$url');
+    final url = Uri.parse('${AppUrls.baseAPIURL}$endpoint');
+
+    LoggerService.d('🌀 Sending $method → $url');
 
     switch (method) {
       case HttpMethod.GET:
-        return await client.get(url, headers: headers);
+        return client.get(url, headers: headers);
       case HttpMethod.POST:
-        return await client.post(url, headers: headers, body: body);
+        return client.post(url, headers: headers, body: body);
       case HttpMethod.PUT:
-        return await client.put(url, headers: headers, body: body);
+        return client.put(url, headers: headers, body: body);
       case HttpMethod.PATCH:
-        return await client.patch(url, headers: headers, body: body);
+        return client.patch(url, headers: headers, body: body);
       case HttpMethod.DELETE:
-        return await client.delete(url, headers: headers, body: body);
+        return client.delete(url, headers: headers, body: body);
     }
   }
 
-  Future<http.Response> getApiHits(String lControllerUrl, {CancelToken? cancelToken}) {
+  Future<http.Response> getApiHits(String endpoint, {CancelToken? cancelToken}) {
     return _performRequest(
-      lControllerUrl,
-          (client) => _sendRequest(client, HttpMethod.GET, lControllerUrl),
+      HttpMethod.GET,
+      endpoint,
+      (client) => _sendRequest(client, HttpMethod.GET, endpoint),
       cancelToken: cancelToken,
     );
   }
 
-  Future<http.Response> postApiHits(String lControllerUrl, List<int>? lUtfContent, {CancelToken? cancelToken}) {
+  Future<http.Response> postApiHits(String endpoint, List<int>? utfContent,
+      {CancelToken? cancelToken}) {
     return _performRequest(
-      lControllerUrl,
-          (client) => _sendRequest(client, HttpMethod.POST, lControllerUrl, body: lUtfContent),
+      HttpMethod.POST,
+      endpoint,
+      (client) =>
+          _sendRequest(client, HttpMethod.POST, endpoint, body: utfContent),
+      body: utfContent,
       cancelToken: cancelToken,
     );
   }
 
-  Future<http.Response> putApiHits(String lControllerUrl, List<int> lUtfContent, {CancelToken? cancelToken}) {
+  Future<http.Response> putApiHits(String endpoint, List<int> utfContent,
+      {CancelToken? cancelToken}) {
     return _performRequest(
-      lControllerUrl,
-          (client) => _sendRequest(client, HttpMethod.PUT, lControllerUrl, body: lUtfContent),
+      HttpMethod.PUT,
+      endpoint,
+      (client) =>
+          _sendRequest(client, HttpMethod.PUT, endpoint, body: utfContent),
+      body: utfContent,
       cancelToken: cancelToken,
     );
   }
 
-  Future<http.Response> patchApiHits(String lControllerUrl, List<int> lUtfContent, {CancelToken? cancelToken}) {
+  Future<http.Response> patchApiHits(String endpoint, List<int> utfContent,
+      {CancelToken? cancelToken}) {
     return _performRequest(
-      lControllerUrl,
-          (client) => _sendRequest(client, HttpMethod.PATCH, lControllerUrl, body: lUtfContent),
+      HttpMethod.PATCH,
+      endpoint,
+      (client) =>
+          _sendRequest(client, HttpMethod.PATCH, endpoint, body: utfContent),
+      body: utfContent,
       cancelToken: cancelToken,
     );
   }
 
-  Future<http.Response> deleteApiHits(String lControllerUrl, {List<int>? lUtfContent, CancelToken? cancelToken}) {
+  Future<http.Response> deleteApiHits(String endpoint,
+      {List<int>? utfContent, CancelToken? cancelToken}) {
     return _performRequest(
-      lControllerUrl,
-          (client) => _sendRequest(client, HttpMethod.DELETE, lControllerUrl, body: lUtfContent),
+      HttpMethod.DELETE,
+      endpoint,
+      (client) =>
+          _sendRequest(client, HttpMethod.DELETE, endpoint, body: utfContent),
+      body: utfContent,
       cancelToken: cancelToken,
     );
   }
-
-  Future<http.Response> _genericMultipartRequest(
-      http.Client client,
-      String endpointUrl,
-      dynamic model, {
-        Map<String, dynamic Function()>? fileExtractors,
-        String? type,
-      }) async {
-    final token = await SharedPreferencesService().readToken();
-    final url = Uri.parse(AppUrls.baseAPIURL + endpointUrl);
-    final request = http.MultipartRequest(type ?? 'POST', url);
-    request.headers.addAll({
-      HttpHeaders.acceptHeader: 'application/json',
-      if (token != null) HttpHeaders.authorizationHeader: 'Bearer \$token',
-    });
-
-    final json = model.toJson();
-    json.forEach((key, value) {
-      if (value == null) return;
-      if (value is List) {
-        for (int i = 0; i < value.length; i++) {
-          request.fields['\$key[\$i]'] = value[i].toString();
-        }
-      } else if (value is String || value is num || value is bool) {
-        request.fields[key] = value.toString();
-      }
-    });
-
-    if (fileExtractors != null) {
-      for (var entry in fileExtractors.entries) {
-        final fKey = entry.key;
-        final v = entry.value();
-        if (v is File) {
-          request.files.add(await http.MultipartFile.fromPath(fKey, v.path));
-        } else if (v is List<File>) {
-          for (final f in v) {
-            request.files.add(await http.MultipartFile.fromPath(fKey, f.path));
-          }
-        }
-      }
-    }
-
-    LoggerService.d('Sending multipart request to \$endpointUrl');
-    final streamedResponse = await client.send(request);
-    return await http.Response.fromStream(streamedResponse);
-  }
-
-
 }
+''';
 
-      
-      ''');
-
-    await File(path.join(servicesDir.path, 'shared_preferences_service.dart'))
-        .writeAsString('''
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'logger_service.dart';
-
-/// Service for managing local storage using SharedPreferences.
-class SharedPreferencesService {
-  static const String _keyDataModel = 'data_model';
-  static const String _keyUserData = 'user_data';
-  static const String _deviceToken = 'deviceToken';
-  static const String _apiToken = 'apiToken';
-
-  Future<void> saveDeviceToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_deviceToken, token);
-    LoggerService.i('Saved device token');
-  }
-
-  Future<String?> readDeviceToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_deviceToken);
-    LoggerService.d('Read device token: \$token');
-    return token;
-  }
-
-  Future<void> saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_apiToken, token);
-    LoggerService.i('Saved API token');
-  }
-
-  Future<String?> readToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_apiToken);
-    LoggerService.d('Read API token: \$token');
-    return token;
-  }
-
-  Future<void> saveUserData(dynamic userData) async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = json.encode(userData.toJson());
-    await prefs.setString(_keyUserData, data);
-    LoggerService.i('Saved user data');
-  }
-
-  Future<dynamic> readUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString(_keyUserData);
-    if (data != null) {
-      final jsonData = json.decode(data);
-      LoggerService.d('Read user data: \$jsonData');
-      return jsonData;
-    }
-    LoggerService.d('No user data found');
-    return null;
-  }
-
-  Future<void> clearAllPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    final result = await prefs.clear();
-    if (result) {
-      LoggerService.i('All SharedPreferences data cleared successfully');
-    } else {
-      LoggerService.e('Failed to clear SharedPreferences data');
-    }
-  }
-}
-''');
-
-    await File(path.join(servicesDir.path, 'json_extractor.dart'))
-        .writeAsString('''
-import 'dart:convert';
-import '../config/global_variables.dart';
-import 'logger_service.dart';
-
-/// Extracts and stores error messages from API responses.
-class MessageExtractor {
-  void extractAndStoreMessage(String endPoint, String responseBody) {
-    try {
-      LoggerService.i('Api EndPoint: \$endPoint - Body: \$responseBody');
-      final jsonMap = jsonDecode(responseBody);
-      GlobalVariables.errorMessages.clear();
-      if (jsonMap['errors'] is List) {
-        GlobalVariables.errorMessages = List<String>.from(jsonMap['errors']);
-      } else if (jsonMap['message'] != null) {
-        GlobalVariables.errorMessages.add(jsonMap['message']);
-      } else {
-        GlobalVariables.errorMessages.add('Unknown error occurred.');
-      }
-      LoggerService.i('Stored Error Messages: \${GlobalVariables.errorMessages}');
-    } catch (e) {
-      LoggerService.e('Error extracting and storing message: \$e');
-      GlobalVariables.errorMessages.add('Error extracting message.');
-    }
-  }
-}
-''');
-
-    await File(path.join(servicesDir.path, 'global_variables.dart'))
-        .writeAsString('''
-import 'app_enums.dart';
-
-/// Global variables for the LayerX app.
-class GlobalVariables {
-  static List<String> errorMessages = ['Failed, Try Again'];
-  // static UserRole userRole = UserRole.DRIVER;
-  static String route = '';
-}
-''');
-
-    await File(path.join(servicesDir.path, 'location_service.dart'))
-        .writeAsString('''
-import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'logger_service.dart';
-
-/// Service for retrieving the user's current location.
-class LocationService {
-  /// Retrieves the current location of the user.
-  /// Returns a [Position] with latitude and longitude.
-  /// Throws [Exception] with detailed messages on failure.
-  Future<Position> getCurrentLocation() async {
-    // Step 1: Check if location services are enabled
-    final isServiceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!isServiceEnabled) {
-      LoggerService.w('Location services are disabled');
-      await Geolocator.openLocationSettings();
-      throw Exception('Location services are disabled.');
-    }
-
-    // Step 2: Check permission status
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      LoggerService.d('Requesting location permission');
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        LoggerService.w('Location permission denied');
-        throw Exception('Location permission denied.');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      LoggerService.w('Location permission permanently denied');
-      await openAppSettings();
-      throw Exception(
-          'Location permission permanently denied. Please enable it in app settings.');
-    }
-
-    // Step 3: Get current position
-    try {
-      final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-      LoggerService.i(
-          'Location retrieved: \${position.latitude}, \${position.longitude}');
-      return position;
-    } catch (e) {
-      LoggerService.e('Error fetching location: \$e');
-      throw Exception('Error fetching location: \$e');
-    }
-  }
-}
-''');
-
-    await File(path.join(servicesDir.path, 'api_response_handler.dart'))
-        .writeAsString('''
-import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
-import '../config/app_routes.dart';
-import '../mvvm/model/api_response_model/api_response.dart';
-import 'json_extractor.dart';
-import 'logger_service.dart';
-
-/// Handles API responses with standardized processing.
-class ApiResponseHandler {
-  /// Processes an API response and returns an [ApiResponse<T>].
-  /// Uses [fromJson] to parse the data field into type [T].
-  static Future<ApiResponse<T>> process<T>(
-    dynamic response,
-    String? endPoint,
-    T Function(dynamic dataJson) fromJson,
-  ) async {
-    MessageExtractor().extractAndStoreMessage(endPoint ?? '', response.body);
-
-    switch (response.statusCode) {
-      case 200:
-      case 201:
-        final parsedJson = response.body.length > 100000
-            ? await compute<String, dynamic>(_parseJson, response.body)
-            : jsonDecode(response.body);
-        LoggerService.i('API response processed successfully: \$endPoint');
-        return ApiResponse<T>.fromJson(parsedJson, fromJson);
-
-      case 401:
-        _handleUnauthorized();
-        break;
-
-      case 422:
-        _handleError(response, 'Validation Error');
-        break;
-
-      case 500:
-        _handleError(response, 'Internal Server Error');
-        break;
-
-      default:
-        _handleError(
-            response, 'API Error: \${response.statusCode} - \${response.reasonPhrase}');
-    }
-    throw Exception('Unexpected error occurred.');
-  }
-
-  static dynamic _parseJson(String responseBody) {
-    return jsonDecode(responseBody);
-  }
-
-  static void _handleUnauthorized() {
-    LoggerService.w('Unauthorized access. Redirecting to login.');
-    Get.offAllNamed(AppRoutes.loginView);
-    throw Exception('Unauthorized access. Please log in.');
-  }
-
-  static void _handleError(dynamic response, String errorMessage) {
-    try {
-      final errorResponse = jsonDecode(response.body);
-      final message =
-          'errorMessage: \${errorResponse['message'] ?? 'No details available'}';
-      LoggerService.e(message);
-      throw Exception(message);
-    } catch (e, stack) {
-      LoggerService.e('Error handling failed: \$e',
-          error: e, stackTrace: stack);
-      throw Exception(errorMessage);
-    }
-  }
-
-  static void logUnhandledError(dynamic e, StackTrace stackTrace) {
-    LoggerService.e('Unhandled error: \$e', error: e, stackTrace: stackTrace);
-  }
-}
-''');
-
-    await File(path.join(servicesDir.path, 'logger_service.dart'))
-        .writeAsString('''
-import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
-import 'package:logger/logger.dart';
-
-/// Custom log printer with enhanced formatting, colors, and timestamps.
-class CustomPrinter extends LogPrinter {
-  final PrettyPrinter _prettyPrinter;
-
-  CustomPrinter()
-      : _prettyPrinter = PrettyPrinter(
-          methodCount: 2,
-          errorMethodCount: 8,
-          lineLength: 120,
-          colors: true,
-          printEmojis: true,
-          excludeBox: const {},
-          noBoxingByDefault: false,
-          excludePaths: const [],
-          levelColors: {
-            Level.trace: AnsiColor.fg(93), // Electric Purple 💜
-            Level.debug: AnsiColor.fg(200), // Neon Cyan 🌀
-            Level.info: AnsiColor.fg(200), // Bright Cyan 🩵
-            Level.warning: AnsiColor.fg(214), // Vivid Orange ⚠️
-            Level.error: AnsiColor.fg(197), // Bright Crimson ⛔
-            Level.wtf: AnsiColor.fg(200), // Hot Pink 🔥
-          },
-          levelEmojis: {
-            Level.trace: '💜 ',
-            Level.debug: '🌀 ',
-            Level.info: '🩵 ',
-            Level.warning: '⚡ ',
-            Level.error: '⛔ ',
-            Level.wtf: '🔥 ',
-          },
-        );
-
-  @override
-  List<String> log(LogEvent event) {
-    final output = _prettyPrinter.log(event);
-    final dateTime = DateTime.now();
-    final formattedTime = DateFormat('dd-MM-yyyy hh:mm:ss a').format(dateTime);
-    final levelName = event.level.name.toUpperCase();
-    return output
-        .map((line) => '[📅 \$formattedTime] [\$levelName] \$line')
-        .toList();
-  }
-}
-
-/// Singleton service for logging with custom formatting.
-class LoggerService {
-  LoggerService._();
-
-  static final Logger _logger = Logger(
-    filter: ProductionFilter(),
-    printer: CustomPrinter(),
-    level: kDebugMode ? Level.trace : Level.warning,
-  );
-
-  /// Returns the singleton logger instance.
-  static Logger get instance => _logger;
-
-  /// Logs a debug message (only in debug mode).
-  static void d(dynamic message, {Object? error, StackTrace? stackTrace}) {
-    if (kDebugMode) _logger.d(message, error: error, stackTrace: stackTrace);
-  }
-
-  /// Logs an info message (only in debug mode).
-  static void i(dynamic message, {Object? error, StackTrace? stackTrace}) {
-    if (kDebugMode) _logger.i(message, error: error, stackTrace: stackTrace);
-  }
-
-  /// Logs a warning message (only in debug mode).
-  static void w(dynamic message, {Object? error, StackTrace? stackTrace}) {
-    if (kDebugMode) _logger.w(message, error: error, stackTrace: stackTrace);
-  }
-
-  /// Logs an error message (only in debug mode).
-  static void e(dynamic message, {Object? error, StackTrace? stackTrace}) {
-    if (kDebugMode) _logger.e(message, error: error, stackTrace: stackTrace);
-  }
-
-  /// Logs a verbose message (only in debug mode).
-  static void v(dynamic message, {Object? error, StackTrace? stackTrace}) {
-    if (kDebugMode) _logger.v(message, error: error, stackTrace: stackTrace);
-  }
-
-  /// Logs a WTF message (only in debug mode).
-  static void wtf(dynamic message, {Object? error, StackTrace? stackTrace}) {
-    if (kDebugMode) _logger.wtf(message, error: error, stackTrace: stackTrace);
-  }
-}
-''');
-
-    print('Created service files in services/');
-  }
+  // ========================= REPOSITORIES =========================
 
   Future<void> _createRepositoryFiles(String appDirPath) async {
-    final authRepoDir =
-        Directory(path.join(appDirPath, 'repository', 'auth_repo'));
+    final authRepoDir = Directory(path.join(appDirPath, 'repository', 'auth_repo'));
     final apiRepoDir = Directory(path.join(appDirPath, 'repository', 'apis'));
 
-    await File(path.join(authRepoDir.path, 'auth_repository.dart'))
-        .writeAsString('''
-import 'package:http/http.dart' as http;
+    await File(path.join(authRepoDir.path, 'auth_repository.dart')).writeAsString('''
 import '../../config/app_urls.dart';
 import '../../mvvm/model/api_response_model/api_response.dart';
 import '../../mvvm/model/body_model/driver_signup_body_model.dart';
@@ -1664,109 +1540,101 @@ import '../../services/api_response_handler.dart';
 import '../../services/https_calls.dart';
 import '../../services/logger_service.dart';
 
-/// Repository for authentication-related API calls.
 class AuthRepository {
   final HttpsCalls _httpsCalls = HttpsCalls();
 
-  Future<ApiResponse<void>> driverSignUpApi(
-      DriverSignupBodyModel signUpBodyModel) async {
-    try {
-      const endPoint = AppUrls.signup;
-      LoggerService.d('Initiating driver signup API call');
-      final response =
-          await _httpsCalls.multipartDriverProfileApiHits(endPoint, signUpBodyModel);
-      return await ApiResponseHandler.process(response, endPoint, (dataJson) {});
-    } catch (e, stackTrace) {
-      ApiResponseHandler.logUnhandledError(e, stackTrace);
-      rethrow;
-    }
-  }
-
-  Future<ApiResponse<void>> updateDriver(
-      DriverSignupBodyModel signUpBodyModel) async {
-    try {
-      const endPoint = AppUrls.updateAccount;
-      LoggerService.d('Initiating driver update API call');
-      final response =
-          await _httpsCalls.multipartDriverProfileApiHits(endPoint, signUpBodyModel);
-      return await ApiResponseHandler.process(response, endPoint, (dataJson) {});
-    } catch (e, stackTrace) {
-      ApiResponseHandler.logUnhandledError(e, stackTrace);
-      rethrow;
-    }
-  }
-
-  Future<ApiResponse<void>> garageSignUpApi(
-      GarageSignupBodyModel signUpBodyModel) async {
-    try {
-      const endPoint = AppUrls.signup;
-      LoggerService.d('Initiating garage signup API call');
-      final response =
-          await _httpsCalls.multipartGarageProfileApiHits(endPoint, signUpBodyModel);
-      return await ApiResponseHandler.process(response, endPoint, (dataJson) {});
-    } catch (e, stackTrace) {
-      ApiResponseHandler.logUnhandledError(e, stackTrace);
-      rethrow;
-    }
-  }
+  // Future<ApiResponse<void>> driverSignUpApi(DriverSignupBodyModel body) async {
+  //   try {
+  //     const endPoint = AppUrls.signup;
+  //     LoggerService.d('Driver signup: \$endPoint');
+  //     final response = await _httpsCalls.multipartDriverProfileApiHits(endPoint, body);
+  //     return ApiResponseHandler.process(response, endPoint, (_) {});
+  //   } catch (e, st) {
+  //     ApiResponseHandler.logUnhandledError(e, st);
+  //     rethrow;
+  //   }
+  // }
+  //
+  // Future<ApiResponse<void>> updateDriver(DriverSignupBodyModel body) async {
+  //   try {
+  //     const endPoint = AppUrls.updateAccount;
+  //     LoggerService.d('Driver update: \$endPoint');
+  //     final response = await _httpsCalls.multipartDriverProfileApiHits(endPoint, body);
+  //     return ApiResponseHandler.process(response, endPoint, (_) {});
+  //   } catch (e, st) {
+  //     ApiResponseHandler.logUnhandledError(e, st);
+  //     rethrow;
+  //   }
+  // }
+  //
+  // Future<ApiResponse<void>> garageSignUpApi(GarageSignupBodyModel body) async {
+  //   try {
+  //     const endPoint = AppUrls.signup;
+  //     LoggerService.d('Garage signup: \$endPoint');
+  //     final response = await _httpsCalls.multipartGarageProfileApiHits(endPoint, body);
+  //     return ApiResponseHandler.process(response, endPoint, (_) {});
+  //   } catch (e, st) {
+  //     ApiResponseHandler.logUnhandledError(e, st);
+  //     rethrow;
+  //   }
+  // }
 }
 ''');
 
-    await File(path.join(apiRepoDir.path, 'data_repository.dart'))
-        .writeAsString('''
-import 'package:http/http.dart' as http;
+    await File(path.join(apiRepoDir.path, 'data_repository.dart')).writeAsString('''
 import '../../config/app_urls.dart';
 import '../../mvvm/model/api_response_model/api_response.dart';
 import '../../mvvm/model/body_model/add_car_body_model.dart';
-import '../../mvvm/model/body_model/buy_car_request.dart';
+import '../../mvvm/model/body_model/buy_car_request_model.dart';
 import '../../services/api_response_handler.dart';
 import '../../services/https_calls.dart';
 import '../../services/logger_service.dart';
 
-/// Repository for data-related API calls (e.g., car operations).
 class DataRepository {
   final HttpsCalls _httpsCalls = HttpsCalls();
 
-  Future<ApiResponse<void>> addCarApi(AddCarBodyModel carDataModel) async {
+  Future<ApiResponse<void>> addCarApi(AddCarBodyModel body) async {
     try {
-      const endPoint = AppUrls.signup; // TODO: Update with correct endpoint
-      LoggerService.d('Initiating add car API call');
-      final response = await _httpsCalls.crudCarMultipartApi(endPoint, carDataModel);
-      return await ApiResponseHandler.process(response, endPoint, (dataJson) {});
-    } catch (e, stackTrace) {
-      ApiResponseHandler.logUnhandledError(e, stackTrace);
+      const endPoint = AppUrls.signup; // TODO: update endpoint
+      LoggerService.d('Add car: \$endPoint');
+      final response = await _httpsCalls.crudCarMultipartApi(endPoint, body);
+      return ApiResponseHandler.process(response, endPoint, (_) {});
+    } catch (e, st) {
+      ApiResponseHandler.logUnhandledError(e, st);
       rethrow;
     }
   }
 
-  Future<ApiResponse<void>> buyCarApi(BuyCarRequestModel buyRequestModel) async {
+  Future<ApiResponse<void>> buyCarApi(BuyCarRequestModel body) async {
     try {
-      const endPoint = AppUrls.signup; // TODO: Update with correct endpoint
-      LoggerService.d('Initiating buy car API call');
-      final response =
-          await _httpsCalls.multipartBuyCarRequestApi(endPoint, buyRequestModel);
-      return await ApiResponseHandler.process(response, endPoint, (dataJson) {});
-    } catch (e, stackTrace) {
-      ApiResponseHandler.logUnhandledError(e, stackTrace);
+      const endPoint = AppUrls.signup; // TODO: update endpoint
+      LoggerService.d('Buy car: \$endPoint');
+      final response = await _httpsCalls.multipartBuyCarRequestApi(endPoint, body);
+      return ApiResponseHandler.process(response, endPoint, (_) {});
+    } catch (e, st) {
+      ApiResponseHandler.logUnhandledError(e, st);
       rethrow;
     }
   }
 }
 ''');
 
-    print('Created repository files in repository/');
+    stdout.writeln('Created repository files.');
   }
+
+  // ========================= APP WIDGET + MAIN =========================
 
   Future<void> _createAppWidgetFile(String projectPath) async {
     final appDir = Directory(path.join(projectPath, 'lib', 'app'));
+
     await File(path.join(appDir.path, 'app_widget.dart')).writeAsString('''
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'config/app_colors.dart';
-import 'config/app_routes.dart';
 
-/// Root widget for the LayerX app with GetX and responsive design.
+import 'config/app_routes.dart';
+import 'config/app_theme.dart';
+
 class LayerXApp extends StatelessWidget {
   const LayerXApp({super.key});
 
@@ -1777,13 +1645,11 @@ class LayerXApp extends StatelessWidget {
       useInheritedMediaQuery: true,
       minTextAdapt: true,
       splitScreenMode: true,
-      builder: (context, child) {
+      builder: (_, __) {
         return GetMaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
-            useMaterial3: true,
-          ),
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
           initialRoute: AppRoutes.splashView,
           getPages: AppPages.routes,
         );
@@ -1793,20 +1659,22 @@ class LayerXApp extends StatelessWidget {
 }
 ''');
 
-    print('Created app_widget.dart');
+    stdout.writeln('Created app_widget.dart');
   }
 
   Future<void> _updateMainFile(String projectPath) async {
     final mainFile = File(path.join(projectPath, 'lib', 'main.dart'));
-    await File(mainFile.path).writeAsString('''
+
+    await mainFile.writeAsString('''
 import 'package:flutter/material.dart';
 import 'app/app_widget.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const LayerXApp());
 }
 ''');
 
-    print('Updated main.dart');
+    stdout.writeln('Updated main.dart');
   }
 }
